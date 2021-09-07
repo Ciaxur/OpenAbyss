@@ -1,11 +1,129 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"openabyss/entity"
+	"strings"
+
+	"github.com/manifoldco/promptui"
 )
 
+func handleError(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func showKeysMenu() {
+	prompt := promptui.Select{
+		Label: "Keys",
+		Items: []string{
+			"Generate New Key Pairs",
+			"List Keys",
+			"Go Back",
+		},
+	}
+	idx, _, err := prompt.Run()
+	handleError(err)
+
+	// GENERATE KEYS
+	if idx == 0 {
+		// Prompt for keyname
+		p := promptui.Prompt{
+			Label:     "Keyname",
+			AllowEdit: true,
+			Validate: func(s string) error {
+				// Check valid keyname & keyname existance
+				if len(s) == 0 {
+					return errors.New("no empty name allowed")
+				} else if entity.Store.Has(s) {
+					return errors.New("keyname already exists")
+				}
+				return nil
+			},
+		}
+		keyname, err := p.Run()
+		handleError(err)
+
+		e1 := entity.GenerateKeys("keys", keyname, 2048)
+		e1.Name = keyname
+		log.Println("Generated Public Key ID:", e1.PublicKey.KeyId)
+		log.Println("Generated Private Key ID:", e1.PrivateKey.KeyId)
+		log.Println("Generated Key Named:", e1.Name)
+		entity.Store.Add(e1)
+	} else if idx == 1 { // LIST KEYS
+		if entity.Store.Length == 0 {
+			log.Println("No keys stored")
+		} else {
+			for k, v := range entity.Store.Keys {
+				fmt.Printf("[%s]: %d\n", k, v.PublicKey.KeyId)
+			}
+		}
+	}
+}
+
+func loadKeys() error {
+	files, err := ioutil.ReadDir("keys")
+	e := entity.Entity{}
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		if !file.IsDir() {
+			if strings.HasSuffix(file.Name(), "pub") {
+				e.PublicKey = entity.DecodePublicKey("keys", file.Name())
+			} else {
+				e.PrivateKey = entity.DecodePrivateKey("keys", file.Name())
+				e.Name = file.Name()
+			}
+		}
+
+		// Check Entity is done
+		if e.PrivateKey != nil && e.PublicKey != nil {
+			if !entity.ValidateKeyPair(e.PublicKey, e.PrivateKey) {
+				log.Printf("Invalid Key Pair '%s' Public[%d] Private[%d]\n", e.Name, e.PublicKey.KeyId, e.PrivateKey.KeyId)
+			} else {
+				entity.Store.Add(e)
+			}
+			e = entity.Entity{} // reset
+		}
+	}
+
+	return nil
+}
+
 func main() {
-	e1 := entity.GenerateKeys("keys", "key1", 2048)
-	fmt.Println(e1.PrivateKey.KeyId)
+	// Load in Keys if available
+	err := loadKeys()
+	if err == nil {
+		log.Printf("Loaded in %d keys\n", entity.Store.Length)
+	} else {
+		log.Println("No keys loaded")
+	}
+
+	for isDone := false; !isDone; {
+		prompt := promptui.Select{
+			Label: "Actions",
+			Items: []string{
+				"Keys",
+				"Encrypt/Decrypt",
+				"Exit",
+			},
+		}
+
+		_, result, err := prompt.Run()
+		handleError(err)
+
+		if result == "Keys" {
+			showKeysMenu()
+		} else if result == "Encrypt/Decrypt" {
+			log.Println("WIP")
+		} else if result == "Exit" {
+			isDone = true
+		}
+	}
 }
