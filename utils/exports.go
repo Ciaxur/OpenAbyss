@@ -8,18 +8,6 @@ import (
 	"path/filepath"
 )
 
-/**
- * Helper function that checks if a file exists
- *  given a file name returning the state of
- *  the existance of the file
- */
-func FileExists(filename string) bool {
-	if _, err := os.Stat(filename); err == nil {
-		return true
-	}
-	return false
-}
-
 // Exports the public/private key to a file given
 //  the filename and entity to export
 func ExportKeys(keyPair *rsa.PrivateKey, dir string, keyname string) error {
