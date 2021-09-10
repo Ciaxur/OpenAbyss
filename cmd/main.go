@@ -27,7 +27,10 @@ func showKeysMenu() {
 		},
 	}
 	idx, _, err := prompt.Run()
-	handleError(err)
+	if utils.IsErrorSIGINT(err) {
+		return
+	}
+	utils.HandleErr(err, "show keys prompt error")
 
 	// GENERATE KEYS
 	if idx == 0 {
@@ -46,7 +49,10 @@ func showKeysMenu() {
 			},
 		}
 		keyname, err := p.Run()
-		handleError(err)
+		if utils.IsErrorSIGINT(err) {
+			return
+		}
+		utils.HandleErr(err, "keyname prompt error")
 
 		e1 := entity.GenerateKeys("keys", keyname, 2048)
 		e1.Name = keyname
@@ -114,7 +120,11 @@ func main() {
 		}
 
 		_, result, err := prompt.Run()
-		handleError(err)
+		if utils.IsErrorSIGINT(err) {
+			log.Println("Exiting...")
+			os.Exit(0)
+		}
+		utils.HandleErr(err, "main.prompt wth")
 
 		if result == "Keys" {
 			showKeysMenu()
