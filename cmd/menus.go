@@ -6,6 +6,9 @@ import (
 	"log"
 	"openabyss/entity"
 	"openabyss/utils"
+	"os"
+	"path"
+	"regexp"
 
 	"github.com/manifoldco/promptui"
 )
@@ -104,6 +107,22 @@ func ShowEncDecryptMenu() {
 			},
 		}
 		destPath, _ = p2.Run()
+
+		// Handle Path and destination creation
+		// Create directory path if not available
+		//  - Case1: Create directory path for dest path being a directory
+		//  - Case2: Create directory path for dest path's parent
+		if isDirPath, _ := regexp.MatchString("/$", destPath); isDirPath {
+			// Create path if doesn't exist
+			if !utils.DirExists(destPath) {
+				os.MkdirAll(destPath, 0755)
+			}
+
+			// Adjust Destination path with file end
+			destPath += "_output_" + path.Base(filePath)
+		} else if !utils.DirExists(path.Dir(destPath)) {
+			os.MkdirAll(path.Dir(destPath), 0755)
+		}
 	}
 
 	if val == "Encrypt file" {
