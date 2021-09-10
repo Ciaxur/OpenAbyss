@@ -79,6 +79,7 @@ func ShowEncDecryptMenu() {
 
 	// Get path to file
 	var filePath string
+	var destPath string
 	if val != "Go back" {
 		p := promptui.Prompt{
 			Label:     "Path to file",
@@ -91,19 +92,31 @@ func ShowEncDecryptMenu() {
 			},
 		}
 		filePath, _ = p.Run()
+
+		p2 := promptui.Prompt{
+			Label:     "Path to destination",
+			AllowEdit: true,
+			Validate: func(s string) error {
+				if utils.FileExists(s) {
+					return errors.New("path already exists")
+				}
+				return nil
+			},
+		}
+		destPath, _ = p2.Run()
 	}
 
 	if val == "Encrypt file" {
 		sk := SelectPrivateKey()
 		if sk != nil {
-			entity.Encrypt(filePath, sk)
+			entity.Encrypt(filePath, destPath, sk)
 		} else {
 			log.Fatalln("no private key selected")
 		}
 	} else if val == "Decrypt file" {
 		sk := SelectPrivateKey()
 		if sk != nil {
-			entity.Decrypt(filePath, sk)
+			entity.Decrypt(filePath, destPath, sk)
 		} else {
 			log.Fatalln("no private key selected")
 		}
