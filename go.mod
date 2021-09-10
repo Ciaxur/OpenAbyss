@@ -2,10 +2,7 @@ module openabyss
 
 go 1.17
 
-require (
-	github.com/manifoldco/promptui v0.8.0
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-)
+require github.com/manifoldco/promptui v0.8.0
 
 require (
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect

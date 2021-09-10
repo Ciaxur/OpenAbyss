@@ -1,6 +1,8 @@
 package entity
 
-import "golang.org/x/crypto/openpgp/packet"
+import (
+	"crypto/rsa"
+)
 
 var (
 	Store EntityStore = EntityStore{
@@ -10,7 +12,7 @@ var (
 )
 
 type Entity struct {
-	PublicKey  *packet.PublicKey
-	PrivateKey *packet.PrivateKey
+	PublicKey  *rsa.PublicKey
+	PrivateKey *rsa.PrivateKey
 	Name       string
 }

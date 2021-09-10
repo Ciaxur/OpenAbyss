@@ -50,16 +50,14 @@ func showKeysMenu() {
 
 		e1 := entity.GenerateKeys("keys", keyname, 2048)
 		e1.Name = keyname
-		log.Println("Generated Public Key ID:", e1.PublicKey.KeyId)
-		log.Println("Generated Private Key ID:", e1.PrivateKey.KeyId)
-		log.Println("Generated Key Named:", e1.Name)
+		log.Println("Generated Key:", e1.Name)
 		entity.Store.Add(e1)
 	} else if idx == 1 { // LIST KEYS
 		if entity.Store.Length == 0 {
 			log.Println("No keys stored")
 		} else {
 			for k, v := range entity.Store.Keys {
-				fmt.Printf("[%s]: %d\n", k, v.PublicKey.KeyId)
+				fmt.Printf("[%s]: %s\n", k, v.Name)
 			}
 		}
 	}
@@ -84,8 +82,8 @@ func loadKeys() error {
 
 		// Check Entity is done
 		if e.PrivateKey != nil && e.PublicKey != nil {
-			if !entity.ValidateKeyPair(e.PublicKey, e.PrivateKey) {
-				log.Printf("Invalid Key Pair '%s' Public[%d] Private[%d]\n", e.Name, e.PublicKey.KeyId, e.PrivateKey.KeyId)
+			if !entity.ValidateKeyPair(e.PrivateKey) {
+				log.Printf("Invalid Key Pair '%s' Public[%d] Private[%d]\n", e.Name, e.PublicKey.Size(), e.PrivateKey.Size())
 			} else {
 				entity.Store.Add(e)
 			}

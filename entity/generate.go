@@ -3,88 +3,69 @@ package entity
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"errors"
+	"crypto/x509"
+	"encoding/pem"
+	"io/ioutil"
 	"openabyss/utils"
 	"os"
 	"path"
-	"time"
-
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
-	"golang.org/x/crypto/openpgp/packet"
 )
 
 /**
  * Validates the keypair being valid returning the state of validity
  */
-func ValidateKeyPair(pk *packet.PublicKey, sk *packet.PrivateKey) bool {
-	return pk.KeyId == sk.KeyId
+func ValidateKeyPair(sk *rsa.PrivateKey) bool {
+	if err := sk.Validate(); err != nil {
+		return false
+	}
+	return true
 }
 
 func GenerateKeys(dir string, keyname string, bits int) Entity {
 	// Generate & Create RSA Keys
-	sk, err := rsa.GenerateKey(rand.Reader, bits)
-	utils.HandleErr(err, "error generating Private key")
-
-	gpgSkKey := packet.NewRSAPrivateKey(time.Now(), sk)
-	gpgPbKey := packet.NewRSAPublicKey(time.Now(), &sk.PublicKey)
+	rsaKeyPair, err := rsa.GenerateKey(rand.Reader, bits)
+	utils.HandleErr(err, "error generating RSA Keypair")
 
 	// Export keys to file
-	err = utils.ExportKeys(gpgPbKey, gpgSkKey, dir, keyname)
+	err = utils.ExportKeys(rsaKeyPair, dir, keyname)
 	utils.HandleErr(err, "could no export keys to file")
 
 	return Entity{
-		PrivateKey: gpgSkKey,
-		PublicKey:  gpgPbKey,
+		PrivateKey: rsaKeyPair,
+		PublicKey:  &rsaKeyPair.PublicKey,
 	}
 }
 
-func DecodePublicKey(dir string, keyname string) *packet.PublicKey {
+func DecodePublicKey(dir string, keyname string) *rsa.PublicKey {
 	// Open the file
 	keyFile, err := os.Open(path.Join(dir, keyname))
 	utils.HandleErr(err, "could not read key file")
 	defer keyFile.Close()
 
 	// Decode the file
-	block, err := armor.Decode(keyFile)
-	utils.HandleErr(err, "couldn't decode keyfile")
-	if block.Type != openpgp.PublicKeyType {
-		utils.HandleErr(errors.New("not public key type"), "")
-	}
+	rawFileBytes, err := ioutil.ReadAll(keyFile)
+	utils.HandleErr(err, "could not read public key file")
 
-	// Read & Parse the Key
-	pktReader := packet.NewReader(block.Body)
-	pkt, err := pktReader.Next()
-	utils.HandleErr(err, "could not read packet")
-	key, ok := pkt.(*packet.PublicKey)
-	if !ok {
-		utils.HandleErr(errors.New("failed to convert packet to public key type"), "")
-	}
+	decodedKey, _ := pem.Decode(rawFileBytes)
+	pk, err := x509.ParsePKCS1PublicKey(decodedKey.Bytes)
+	utils.HandleErr(err, "couldn't parse public key")
 
-	return key
+	return pk
 }
 
-func DecodePrivateKey(dir string, keyname string) *packet.PrivateKey {
+func DecodePrivateKey(dir string, keyname string) *rsa.PrivateKey {
 	// Open the file
 	keyFile, err := os.Open(path.Join(dir, keyname))
 	utils.HandleErr(err, "could not read key file")
 	defer keyFile.Close()
 
 	// Decode the file
-	block, err := armor.Decode(keyFile)
-	utils.HandleErr(err, "couldn't decode keyfile")
-	if block.Type != openpgp.PrivateKeyType {
-		utils.HandleErr(errors.New("not private key type"), "")
-	}
+	rawFileBytes, err := ioutil.ReadAll(keyFile)
+	utils.HandleErr(err, "could not read private key file")
 
-	// Read & Parse the Key
-	pktReader := packet.NewReader(block.Body)
-	pkt, err := pktReader.Next()
-	utils.HandleErr(err, "could not read packet")
-	key, ok := pkt.(*packet.PrivateKey)
-	if !ok {
-		utils.HandleErr(errors.New("failed to convert packet to private key type"), "")
-	}
+	decodedKey, _ := pem.Decode(rawFileBytes)
+	sk, err := x509.ParsePKCS1PrivateKey(decodedKey.Bytes)
+	utils.HandleErr(err, "couldn't parse private key")
 
-	return key
+	return sk
 }

@@ -1,12 +1,11 @@
 package utils
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"os"
 	"path/filepath"
-
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
-	"golang.org/x/crypto/openpgp/packet"
 )
 
 /**
@@ -23,7 +22,7 @@ func FileExists(filename string) bool {
 
 // Exports the public/private key to a file given
 //  the filename and entity to export
-func ExportKeys(pk *packet.PublicKey, sk *packet.PrivateKey, dir string, keyname string) error {
+func ExportKeys(keyPair *rsa.PrivateKey, dir string, keyname string) error {
 	// Attempt to create the directory (in case not avail)
 	os.Mkdir(dir, 0777)
 
@@ -39,21 +38,17 @@ func ExportKeys(pk *packet.PublicKey, sk *packet.PrivateKey, dir string, keyname
 	}
 	defer pubKeyFile.Close()
 
-	// Open Armor Encode Writers
-	pWriter, err := armor.Encode(pubKeyFile, openpgp.PublicKeyType, make(map[string]string))
-	if err != nil {
-		return err
-	}
-	defer pWriter.Close()
-	sWriter, err := armor.Encode(privKeyFile, openpgp.PrivateKeyType, make(map[string]string))
-	if err != nil {
-		return err
-	}
-	defer sWriter.Close()
+	// Encode Private Key to file
+	pem.Encode(privKeyFile, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(keyPair),
+	})
 
-	// Encode keys to writers
-	pk.Serialize(pWriter)
-	sk.Serialize(sWriter)
+	// Encode Public Key to file
+	pem.Encode(pubKeyFile, &pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: x509.MarshalPKCS1PublicKey(&keyPair.PublicKey),
+	})
 
 	return nil
 }
