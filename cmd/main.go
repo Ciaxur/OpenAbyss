@@ -1,12 +1,11 @@
 package main
 
 import (
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"openabyss/entity"
 	"openabyss/utils"
+	"os"
 	"strings"
 
 	"github.com/manifoldco/promptui"
@@ -70,9 +69,13 @@ func main() {
 		utils.HandleErr(err, "main.prompt wth")
 
 		if result == "Keys" {
-			showKeysMenu()
+			ShowKeysMenu()
 		} else if result == "Encrypt/Decrypt" {
-			log.Println("WIP")
+			if entity.Store.Length == 0 {
+				log.Println("No available keys. Generate one to encrypt/decrypt")
+			} else {
+				ShowEncDecryptMenu()
+			}
 		} else if result == "Exit" {
 			isDone = true
 		}

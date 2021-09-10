@@ -12,12 +12,14 @@ func IsErrorSIGINT(err error) bool {
 	return false
 }
 
-func HandleErr(err error, msg string) {
+func HandleErr(err error, msg string) bool {
 	if err != nil {
 		if IsErrorSIGINT(err) {
 			log.Fatalln("Unhandled SIGINT")
 			os.Exit(1)
 		}
 		log.Panicln(msg, err)
+		return false
 	}
+	return true
 }
