@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package server;
+option go_package = "proto/server";
+
+service OpenAbyss {
+  // Obtains the Stored Key Names
+  rpc GetKeyNames(EmptyRequest) returns (GetKeyNamesResponse) {}
+
+  // Lists stored path contents
+  rpc ListPathContents(ListPathContentRequest) returns (PathContent) {}
+}
+
+message GetKeyNamesResponse {
+  repeated string Keys = 1;
+}
+
+message ListPathContentRequest {
+  string Path = 1;
+}
+
+message ContentType {
+  bool IsDirectory = 1;
+  string Name = 2;
+  uint64 CreatedUnixTimestamp = 3;
+}
+
+message PathContent {
+  repeated ContentType Content = 1;
+}
+
+message EmptyRequest {}
