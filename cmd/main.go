@@ -1,50 +1,17 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
 	"openabyss/entity"
 	"openabyss/utils"
 	"os"
-	"strings"
 
 	"github.com/manifoldco/promptui"
 )
 
-func loadKeys() error {
-	files, err := ioutil.ReadDir("keys")
-	e := entity.Entity{}
-	if err != nil {
-		return err
-	}
-
-	for _, file := range files {
-		if !file.IsDir() {
-			if strings.HasSuffix(file.Name(), "pub") {
-				e.PublicKey = entity.DecodePublicKey("keys", file.Name())
-			} else {
-				e.PrivateKey = entity.DecodePrivateKey("keys", file.Name())
-				e.Name = file.Name()
-			}
-		}
-
-		// Check Entity is done
-		if e.PrivateKey != nil && e.PublicKey != nil {
-			if !entity.ValidateKeyPair(e.PrivateKey) {
-				log.Printf("Invalid Key Pair '%s' Public[%d] Private[%d]\n", e.Name, e.PublicKey.Size(), e.PrivateKey.Size())
-			} else {
-				entity.Store.Add(e)
-			}
-			e = entity.Entity{} // reset
-		}
-	}
-
-	return nil
-}
-
 func main() {
 	// Load in Keys if available
-	err := loadKeys()
+	err := entity.LoadKeys()
 	if err == nil {
 		log.Printf("Loaded in %d keys\n", entity.Store.Length)
 	} else {
