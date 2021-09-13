@@ -21,7 +21,7 @@ func ValidateKeyPair(sk *rsa.PrivateKey) bool {
 	return true
 }
 
-func GenerateKeys(dir string, keyname string, bits int) Entity {
+func GenerateKeys(dir string, keyname string, bits int) (Entity, error) {
 	// Generate & Create RSA Keys
 	rsaKeyPair, err := rsa.GenerateKey(rand.Reader, bits)
 	utils.HandleErr(err, "error generating RSA Keypair")
@@ -34,7 +34,7 @@ func GenerateKeys(dir string, keyname string, bits int) Entity {
 		PrivateKey: rsaKeyPair,
 		PublicKey:  &rsaKeyPair.PublicKey,
 		Name:       keyname,
-	}
+	}, err
 }
 
 func DecodePublicKey(dir string, keyname string) *rsa.PublicKey {
