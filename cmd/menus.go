@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"openabyss/entity"
 	"openabyss/utils"
@@ -129,14 +130,22 @@ func ShowEncDecryptMenu() {
 	if val == "Encrypt file" {
 		sk := SelectPrivateKey()
 		if sk != nil {
-			entity.Encrypt(filePath, destPath, sk)
+			if data, err := ioutil.ReadFile(filePath); err != nil {
+				log.Println("could not read given file:", err)
+			} else {
+				entity.Encrypt(data, destPath, sk)
+			}
 		} else {
 			log.Fatalln("no private key selected")
 		}
 	} else if val == "Decrypt file" {
 		sk := SelectPrivateKey()
 		if sk != nil {
-			entity.Decrypt(filePath, destPath, sk)
+			if data, err := ioutil.ReadFile(filePath); err != nil {
+				log.Println("could not read given file:", err)
+			} else {
+				entity.Decrypt(data, destPath, sk)
+			}
 		} else {
 			log.Fatalln("no private key selected")
 		}
