@@ -27,7 +27,7 @@ message GenerateEntityRequest {
 }
 
 message GetKeysResponse {
-  repeated Entity entities = 1;
+  repeated Entity Entities = 1;
 }
 
 message GetKeyNamesResponse {

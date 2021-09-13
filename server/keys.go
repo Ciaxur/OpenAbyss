@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/x509"
+	"encoding/pem"
 	"log"
 	"openabyss/entity"
 	pb "openabyss/proto/server"
@@ -26,14 +28,23 @@ func (s openabyss_server) GetKeyNames(ctx context.Context, in *pb.EmptyRequest) 
 // Obtains available stored Entities without the Private Keys
 func (s openabyss_server) GetKeys(ctx context.Context, in *pb.EmptyRequest) (*pb.GetKeysResponse, error) {
 	respObj := &pb.GetKeysResponse{
-		entities: make([]pb.Entity, entity.Store.Length),
+		Entities: make([]*pb.Entity, entity.Store.Length),
 	}
 
 	idx := 0
 	for _, v := range entity.Store.Keys {
-		respObj.entities[idx]
-		respObj.Keys[idx].Name = v.Name
-		respObj.Keys[idx].PublicKey = x509.MarshalPKCS1PublicKey(v.PublicKey)
+		// Encode Public Key
+		publicKeyBuffer := bytes.NewBuffer(nil)
+		pem.Encode(publicKeyBuffer, &pem.Block{
+			Type:  "RSA PUBLIC KEY",
+			Bytes: x509.MarshalPKCS1PublicKey(v.PublicKey),
+		})
+
+		// Construct restponse for the entry
+		respObj.Entities[idx] = &pb.Entity{
+			Name:      v.Name,
+			PublicKey: publicKeyBuffer.Bytes(),
+		}
 		idx += 1
 	}
 
