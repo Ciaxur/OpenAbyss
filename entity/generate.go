@@ -33,6 +33,7 @@ func GenerateKeys(dir string, keyname string, bits int) Entity {
 	return Entity{
 		PrivateKey: rsaKeyPair,
 		PublicKey:  &rsaKeyPair.PublicKey,
+		Name:       keyname,
 	}
 }
 

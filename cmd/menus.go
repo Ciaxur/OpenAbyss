@@ -51,7 +51,6 @@ func ShowKeysMenu() {
 		utils.HandleErr(err, "keyname prompt error")
 
 		e1 := entity.GenerateKeys("keys", keyname, 2048)
-		e1.Name = keyname
 		log.Println("Generated Key:", e1.Name)
 		entity.Store.Add(e1)
 		entity.Store.Length += 1
