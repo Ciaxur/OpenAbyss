@@ -9,27 +9,13 @@ import (
 	"google.golang.org/grpc"
 )
 
-const (
-	port = ":50051"
-)
-
-type openabyss_server struct {
-	pb.UnimplementedOpenAbyssServer
-}
-
-func (s openabyss_server) GetKeyNames(ctx context.Context, in *pb.EmptyRequest) (*pb.GetKeyNamesResponse, error) {
-	return &pb.GetKeyNamesResponse{
-		Keys: []string{
-			"key1", // Example
-		},
-	}, nil
-}
-
 func (s openabyss_server) ListPathContents(ctx context.Context, in *pb.ListPathContentRequest) (*pb.PathContent, error) {
 	return &pb.PathContent{}, nil
 }
 
 func main() {
+	Init()
+
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)

@@ -20,6 +20,10 @@ const _ = grpc.SupportPackageIsVersion7
 type OpenAbyssClient interface {
 	// Obtains the Stored Key Names
 	GetKeyNames(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*GetKeyNamesResponse, error)
+	// Obtains Stored Public Keys
+	GetKeys(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*GetKeysResponse, error)
+	// Generates new Keypair
+	GenerateKeyPair(ctx context.Context, in *GenerateEntityRequest, opts ...grpc.CallOption) (*Entity, error)
 	// Lists stored path contents
 	ListPathContents(ctx context.Context, in *ListPathContentRequest, opts ...grpc.CallOption) (*PathContent, error)
 }
@@ -41,6 +45,24 @@ func (c *openAbyssClient) GetKeyNames(ctx context.Context, in *EmptyRequest, opt
 	return out, nil
 }
 
+func (c *openAbyssClient) GetKeys(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*GetKeysResponse, error) {
+	out := new(GetKeysResponse)
+	err := c.cc.Invoke(ctx, "/server.OpenAbyss/GetKeys", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *openAbyssClient) GenerateKeyPair(ctx context.Context, in *GenerateEntityRequest, opts ...grpc.CallOption) (*Entity, error) {
+	out := new(Entity)
+	err := c.cc.Invoke(ctx, "/server.OpenAbyss/GenerateKeyPair", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *openAbyssClient) ListPathContents(ctx context.Context, in *ListPathContentRequest, opts ...grpc.CallOption) (*PathContent, error) {
 	out := new(PathContent)
 	err := c.cc.Invoke(ctx, "/server.OpenAbyss/ListPathContents", in, out, opts...)
@@ -56,6 +78,10 @@ func (c *openAbyssClient) ListPathContents(ctx context.Context, in *ListPathCont
 type OpenAbyssServer interface {
 	// Obtains the Stored Key Names
 	GetKeyNames(context.Context, *EmptyRequest) (*GetKeyNamesResponse, error)
+	// Obtains Stored Public Keys
+	GetKeys(context.Context, *EmptyRequest) (*GetKeysResponse, error)
+	// Generates new Keypair
+	GenerateKeyPair(context.Context, *GenerateEntityRequest) (*Entity, error)
 	// Lists stored path contents
 	ListPathContents(context.Context, *ListPathContentRequest) (*PathContent, error)
 	mustEmbedUnimplementedOpenAbyssServer()
@@ -67,6 +93,12 @@ type UnimplementedOpenAbyssServer struct {
 
 func (UnimplementedOpenAbyssServer) GetKeyNames(context.Context, *EmptyRequest) (*GetKeyNamesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetKeyNames not implemented")
+}
+func (UnimplementedOpenAbyssServer) GetKeys(context.Context, *EmptyRequest) (*GetKeysResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetKeys not implemented")
+}
+func (UnimplementedOpenAbyssServer) GenerateKeyPair(context.Context, *GenerateEntityRequest) (*Entity, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GenerateKeyPair not implemented")
 }
 func (UnimplementedOpenAbyssServer) ListPathContents(context.Context, *ListPathContentRequest) (*PathContent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListPathContents not implemented")
@@ -102,6 +134,42 @@ func _OpenAbyss_GetKeyNames_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OpenAbyss_GetKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmptyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpenAbyssServer).GetKeys(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/server.OpenAbyss/GetKeys",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpenAbyssServer).GetKeys(ctx, req.(*EmptyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OpenAbyss_GenerateKeyPair_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GenerateEntityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpenAbyssServer).GenerateKeyPair(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/server.OpenAbyss/GenerateKeyPair",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpenAbyssServer).GenerateKeyPair(ctx, req.(*GenerateEntityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _OpenAbyss_ListPathContents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListPathContentRequest)
 	if err := dec(in); err != nil {
@@ -132,10 +200,18 @@ var OpenAbyss_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _OpenAbyss_GetKeyNames_Handler,
 		},
 		{
+			MethodName: "GetKeys",
+			Handler:    _OpenAbyss_GetKeys_Handler,
+		},
+		{
+			MethodName: "GenerateKeyPair",
+			Handler:    _OpenAbyss_GenerateKeyPair_Handler,
+		},
+		{
 			MethodName: "ListPathContents",
 			Handler:    _OpenAbyss_ListPathContents_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/server/server.proto",
+	Metadata: "server.proto",
 }

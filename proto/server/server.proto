@@ -7,8 +7,27 @@ service OpenAbyss {
   // Obtains the Stored Key Names
   rpc GetKeyNames(EmptyRequest) returns (GetKeyNamesResponse) {}
 
+  // Obtains Stored Public Keys
+  rpc GetKeys(EmptyRequest) returns (GetKeysResponse) {}
+
+  // Generates new Keypair
+  rpc GenerateKeyPair(GenerateEntityRequest) returns (Entity) {}
+
   // Lists stored path contents
   rpc ListPathContents(ListPathContentRequest) returns (PathContent) {}
+}
+
+message Entity {
+  string Name = 1;
+  bytes PublicKey = 2;
+}
+
+message GenerateEntityRequest {
+  string Name = 1;
+}
+
+message GetKeysResponse {
+  repeated Entity entities = 1;
 }
 
 message GetKeyNamesResponse {
