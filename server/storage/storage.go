@@ -6,6 +6,42 @@ import (
 	"time"
 )
 
+// Internal helper function for creating sub-storages
+func (fsMap *FileStorageMap) create_sub_storage(sub_storage string) error {
+	// New storage map if none exist
+	if fsMap.StorageMap == nil {
+		fsMap.StorageMap = map[string]FileStorageMap{}
+	}
+
+	// New sub storage IF none exist
+	if _, ok := fsMap.StorageMap[sub_storage]; !ok {
+		fsMap.StorageMap[sub_storage] = FileStorageMap{
+			CreatedAt_UnixTimestamp:  uint64(time.Now().Unix()),
+			ModifiedAt_UnixTimestamp: uint64(time.Now().Unix()),
+			StorageMap:               make(map[string]FileStorageMap),
+			Storage:                  make(map[string]FileStorage),
+		}
+	}
+
+	return nil
+}
+
+// Returns the given sub-storage at the map's root level
+func (fsMap *FileStorageMap) GetSubStorage(subStorageName string) *FileStorageMap {
+	if subStorage, ok := fsMap.StorageMap[subStorageName]; ok {
+		return &subStorage
+	}
+	return nil
+}
+
+// Returns the given storage name at the map's root level
+func (fsMap *FileStorageMap) GetStorage(storageName string) *FileStorage {
+	if storageFile, ok := fsMap.Storage[storageName]; ok {
+		return &storageFile
+	}
+	return nil
+}
+
 // Handles splitting up file path & storing given fileId under split file paths
 //  where filePath MUST include the filename
 func (fsMap *FileStorageMap) Store(fileId string, filePath string, fileType uint8) error {
@@ -23,19 +59,8 @@ func (fsMap *FileStorageMap) Store(fileId string, filePath string, fileType uint
 		}
 
 		// Create & traverse Storage Map
-		if fsPtr.StorageMap == nil {
-			fsPtr.StorageMap = make(map[string]FileStorageMap)
-			fsPtr.StorageMap[p] = FileStorageMap{
-				CreatedAt_UnixTimestamp:  uint64(time.Now().Unix()),
-				ModifiedAt_UnixTimestamp: uint64(time.Now().Unix()),
-				StorageMap:               make(map[string]FileStorageMap),
-				Storage:                  make(map[string]FileStorage),
-			}
-		}
-
-		// Traverse sub-storage
-		fsPtr_inter := fsPtr.StorageMap[p]
-		fsPtr = &fsPtr_inter
+		fsPtr.create_sub_storage(p)
+		fsPtr = fsPtr.GetSubStorage(p)
 	}
 
 	// Create storage entry

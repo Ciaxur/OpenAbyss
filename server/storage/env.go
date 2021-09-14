@@ -2,7 +2,10 @@ package storage
 
 // Internal FileStorage
 var (
-	Internal         FileStorageMap = FileStorageMap{}
+	Internal FileStorageMap = FileStorageMap{
+		StorageMap: make(map[string]FileStorageMap),
+		Storage:    make(map[string]FileStorage),
+	}
 	InternalFilePath string
 )
 
