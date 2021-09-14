@@ -5,18 +5,31 @@ option go_package = "proto/server";
 
 service OpenAbyss {
   // Obtains the Stored Key Names
-  rpc GetKeyNames(EmptyRequest) returns (GetKeyNamesResponse) {}
+  rpc GetKeyNames(EmptyMessage) returns (GetKeyNamesResponse) {}
 
   // Obtains Stored Public Keys
-  rpc GetKeys(EmptyRequest) returns (GetKeysResponse) {}
+  rpc GetKeys(EmptyMessage) returns (GetKeysResponse) {}
 
   // Generates new Keypair
   rpc GenerateKeyPair(GenerateEntityRequest) returns (Entity) {}
 
+
+  rpc EncryptFile(FilePacket) returns (EmptyMessage) {}
+  
   // Lists stored path contents
   rpc ListPathContents(ListPathContentRequest) returns (PathContent) {}
 }
 
+// ENCRYPT/DECRYPT
+message FilePacket {
+  bytes   FileBytes = 1;
+  int64   SizeInBytes = 2;
+  string  FileName = 3;
+  string  StoragePath = 4;
+  string  KeyName = 5;
+}
+
+// ENTITY
 message Entity {
   string Name = 1;
   bytes PublicKey = 2;
@@ -26,6 +39,7 @@ message GenerateEntityRequest {
   string Name = 1;
 }
 
+// KEYS
 message GetKeysResponse {
   repeated Entity Entities = 1;
 }
@@ -34,6 +48,7 @@ message GetKeyNamesResponse {
   repeated string Keys = 1;
 }
 
+// PATHS
 message ListPathContentRequest {
   string Path = 1;
 }
@@ -48,4 +63,5 @@ message PathContent {
   repeated ContentType Content = 1;
 }
 
-message EmptyRequest {}
+// MISC
+message EmptyMessage {}

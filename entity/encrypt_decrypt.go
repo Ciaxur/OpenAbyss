@@ -12,20 +12,20 @@ import (
 
 // Attempts to encrypt given data buffer to given destination returning the state of
 //  the encryption
-func Encrypt(data []byte, destPath string, sk *rsa.PrivateKey) bool {
+func Encrypt(data []byte, destPath string, sk *rsa.PrivateKey) error {
 	eBuffer, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, &sk.PublicKey, data, []byte("OAEP Encrypted"))
 	if err != nil {
 		log.Println("could not encrypt file:", err.Error())
-		return false
+		return err
 	} else {
 		err := ioutil.WriteFile(destPath, []byte(base64.StdEncoding.EncodeToString(eBuffer)), 0644)
 		if !utils.HandleErr(err, "could not write encrypted data to '"+destPath) {
-			return false
+			return err
 		}
 		log.Printf("Encrypted file successfuly: '%s'\n", destPath)
 	}
 
-	return true
+	return nil
 }
 
 // Attempts to decrypt given encrypted data to destination returning the state of

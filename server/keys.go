@@ -11,7 +11,7 @@ import (
 )
 
 // Obtains available stored Entity Keys
-func (s openabyss_server) GetKeyNames(ctx context.Context, in *pb.EmptyRequest) (*pb.GetKeyNamesResponse, error) {
+func (s openabyss_server) GetKeyNames(ctx context.Context, in *pb.EmptyMessage) (*pb.GetKeyNamesResponse, error) {
 	keyResp := &pb.GetKeyNamesResponse{
 		Keys: make([]string, entity.Store.Length),
 	}
@@ -26,7 +26,7 @@ func (s openabyss_server) GetKeyNames(ctx context.Context, in *pb.EmptyRequest) 
 }
 
 // Obtains available stored Entities without the Private Keys
-func (s openabyss_server) GetKeys(ctx context.Context, in *pb.EmptyRequest) (*pb.GetKeysResponse, error) {
+func (s openabyss_server) GetKeys(ctx context.Context, in *pb.EmptyMessage) (*pb.GetKeysResponse, error) {
 	respObj := &pb.GetKeysResponse{
 		Entities: make([]*pb.Entity, entity.Store.Length),
 	}
