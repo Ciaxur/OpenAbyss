@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"openabyss/entity"
+	"openabyss/server/storage"
 )
 
 func Init() {
@@ -13,4 +14,6 @@ func Init() {
 	} else {
 		log.Printf("[init]: loaded '%d' keys\n", entity.Store.Length)
 	}
+	// Load Storage
+	storage.Init()
 }
