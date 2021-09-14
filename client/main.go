@@ -90,7 +90,7 @@ func main() {
 				writer.Write(fileBytes)
 				writer.Close()
 
-				_, err := client.EncryptFile(ctx, &pb.FilePacket{
+				resp, err := client.EncryptFile(ctx, &pb.FilePacket{
 					FileBytes:   compBuffer.Bytes(),
 					SizeInBytes: int64(compBuffer.Len()),
 					FileName:    path.Base(args.EncryptFile),
@@ -100,7 +100,8 @@ func main() {
 				if err != nil {
 					log.Fatalln("failed to encrypt file:", err)
 				} else {
-					log.Printf("Encrypted '%s' -> '%s' successfuly!\n", args.EncryptFile, args.StoragePath)
+					storedFilePath := path.Join(resp.FileStoragePath, resp.FileId)
+					log.Printf("Encrypted '%s' -> '%s' successfuly!\n", args.EncryptFile, storedFilePath)
 				}
 			}
 		}

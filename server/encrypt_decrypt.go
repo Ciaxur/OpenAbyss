@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"log"
 	"openabyss/entity"
 	pb "openabyss/proto/server"
 	"openabyss/utils"
@@ -12,12 +15,13 @@ import (
 )
 
 // Encrypts requested file, saving the location to an internal structure
-func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*pb.EmptyMessage, error) {
+func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*pb.EncryptResult, error) {
 	// Adjust root path
 	storagePath := regexp.MustCompile(`^(\.*)/`).ReplaceAllString(in.StoragePath, "")
+	log.Printf("[EncryptFile]: storagePath extracted: '%s' -'%s'\n", in.StoragePath, storagePath)
 
 	// Handle Storage Directory
-	storageDir := path.Join("./", "storage")
+	storageDir := path.Join("./", ".storage")
 	if !utils.DirExists(storageDir) {
 		os.Mkdir(storageDir, 0755)
 	}
@@ -26,29 +30,29 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 	sk, ok := entity.Store.Keys[in.KeyName]
 	var err error = nil
 	if ok {
-		finalStoragePath := path.Join(storageDir, storagePath)
+		// Stored in internal storage for lookup
+		storedStoragePath := path.Join(storageDir, storagePath)
 
-		// Handle Path and destination creation
-		// Create directory path if not available
-		//  - Case1: Create directory path for dest path being a directory
-		//  - Case2: Create directory path for dest path's parent
-		if isDirPath, _ := regexp.MatchString("/$", finalStoragePath); isDirPath {
-			// Create path if doesn't exist
-			if !utils.DirExists(finalStoragePath) {
-				os.MkdirAll(finalStoragePath, 0755)
-			}
-
-			// Adjust Destination path with file end
-			finalStoragePath = path.Join(finalStoragePath, in.FileName)
-		} else if !utils.DirExists(path.Dir(finalStoragePath)) {
-			os.MkdirAll(path.Dir(finalStoragePath), 0755)
-		}
+		// Generate fileId based on path
+		fileIdBuffer := sha256.Sum256([]byte(
+			path.Join(storedStoragePath, in.FileName),
+		))
+		fileId := hex.EncodeToString(fileIdBuffer[:])
 
 		// Encrypt the data
-		err = entity.Encrypt(in.FileBytes, finalStoragePath, sk.PrivateKey)
+		actualStoredPath := path.Join(storageDir, fileId)
+		log.Printf("[EncryptFile]: storing '%s' -> '%s'\n", in.FileName, actualStoredPath)
+		err = entity.Encrypt(in.FileBytes, actualStoredPath, sk.PrivateKey)
+
+		return &pb.EncryptResult{
+			FileStoragePath: storedStoragePath,
+			FileId:          fileId,
+		}, err
 	} else {
 		err = errors.New("key id not found")
+		return &pb.EncryptResult{
+			FileStoragePath: "",
+			FileId:          "",
+		}, err
 	}
-
-	return &pb.EmptyMessage{}, err
 }

@@ -24,7 +24,7 @@ type OpenAbyssClient interface {
 	GetKeys(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*GetKeysResponse, error)
 	// Generates new Keypair
 	GenerateKeyPair(ctx context.Context, in *GenerateEntityRequest, opts ...grpc.CallOption) (*Entity, error)
-	EncryptFile(ctx context.Context, in *FilePacket, opts ...grpc.CallOption) (*EmptyMessage, error)
+	EncryptFile(ctx context.Context, in *FilePacket, opts ...grpc.CallOption) (*EncryptResult, error)
 	// Lists stored path contents
 	ListPathContents(ctx context.Context, in *ListPathContentRequest, opts ...grpc.CallOption) (*PathContent, error)
 }
@@ -64,8 +64,8 @@ func (c *openAbyssClient) GenerateKeyPair(ctx context.Context, in *GenerateEntit
 	return out, nil
 }
 
-func (c *openAbyssClient) EncryptFile(ctx context.Context, in *FilePacket, opts ...grpc.CallOption) (*EmptyMessage, error) {
-	out := new(EmptyMessage)
+func (c *openAbyssClient) EncryptFile(ctx context.Context, in *FilePacket, opts ...grpc.CallOption) (*EncryptResult, error) {
+	out := new(EncryptResult)
 	err := c.cc.Invoke(ctx, "/server.OpenAbyss/EncryptFile", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ type OpenAbyssServer interface {
 	GetKeys(context.Context, *EmptyMessage) (*GetKeysResponse, error)
 	// Generates new Keypair
 	GenerateKeyPair(context.Context, *GenerateEntityRequest) (*Entity, error)
-	EncryptFile(context.Context, *FilePacket) (*EmptyMessage, error)
+	EncryptFile(context.Context, *FilePacket) (*EncryptResult, error)
 	// Lists stored path contents
 	ListPathContents(context.Context, *ListPathContentRequest) (*PathContent, error)
 	mustEmbedUnimplementedOpenAbyssServer()
@@ -111,7 +111,7 @@ func (UnimplementedOpenAbyssServer) GetKeys(context.Context, *EmptyMessage) (*Ge
 func (UnimplementedOpenAbyssServer) GenerateKeyPair(context.Context, *GenerateEntityRequest) (*Entity, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateKeyPair not implemented")
 }
-func (UnimplementedOpenAbyssServer) EncryptFile(context.Context, *FilePacket) (*EmptyMessage, error) {
+func (UnimplementedOpenAbyssServer) EncryptFile(context.Context, *FilePacket) (*EncryptResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EncryptFile not implemented")
 }
 func (UnimplementedOpenAbyssServer) ListPathContents(context.Context, *ListPathContentRequest) (*PathContent, error) {
