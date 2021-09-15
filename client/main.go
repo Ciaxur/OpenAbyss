@@ -66,16 +66,21 @@ func main() {
 			log.Println("Response:")
 			log.Printf("Generated keypair for '%s':\n", resp.Name)
 		}
-	} else if len(args.EncryptFile) > 0 {
+	} else if args.EncryptFile {
+		// Check: Required File Path
+		if len(args.FilePath) == 0 {
+			log.Fatalf("no given required file to encrypt. filepath argument is required")
+		}
+
 		if len(args.StoragePath) == 0 { // Validate acompaning output destination
 			log.Fatal("no given required storage path argument")
-		} else if !utils.PathExists(args.EncryptFile) { // Validate Path
-			log.Fatalf("given path '%s' does not exist\n", args.EncryptFile)
+		} else if !utils.PathExists(args.FilePath) { // Validate Path
+			log.Fatalf("given path '%s' does not exist\n", args.FilePath)
 		} else if len(args.KeyId) == 0 { // No given key to encrypt with
 			log.Fatal("no given required keyId to use")
 		} else { // Issue request
 			// Read in the file
-			if fileBytes, err := ioutil.ReadFile(args.EncryptFile); err != nil {
+			if fileBytes, err := ioutil.ReadFile(args.FilePath); err != nil {
 				log.Fatalln("could not read in file:", err)
 			} else {
 
@@ -88,7 +93,7 @@ func main() {
 				resp, err := client.EncryptFile(ctx, &pb.FilePacket{
 					FileBytes:   compBuffer.Bytes(),
 					SizeInBytes: int64(compBuffer.Len()),
-					FileName:    path.Base(args.EncryptFile),
+					FileName:    path.Base(args.FilePath),
 					StoragePath: args.StoragePath,
 					KeyName:     args.KeyId,
 				})
@@ -96,19 +101,24 @@ func main() {
 					utils.HandleErr(err, "failed to encrypt file")
 				} else {
 					storedFilePath := path.Join(resp.FileStoragePath, resp.FileId)
-					log.Printf("Encrypted '%s' -> '%s' successfuly!\n", args.EncryptFile, storedFilePath)
+					log.Printf("Encrypted '%s' -> '%s' successfuly!\n", args.FilePath, storedFilePath)
 				}
 			}
 		}
-	} else if len(args.DecryptFile) > 0 {
+	} else if args.DecryptFile {
 		// Check: Required Key-Id Argument
 		if len(args.KeyId) == 0 {
 			log.Fatalln("KeyId is required to decrypt the file")
 		}
 
+		// Check: Required Internal File path
+		if len(args.FilePath) == 0 {
+			log.Fatalln("FilePath is required to decrypt the file")
+		}
+
 		// Issue request
 		resp, err := client.DecryptFile(ctx, &pb.DecryptRequest{
-			FilePath:       args.DecryptFile,
+			FilePath:       args.FilePath,
 			PrivateKeyName: []byte(args.KeyId),
 		})
 
