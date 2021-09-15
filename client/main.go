@@ -20,12 +20,6 @@ const (
 	defaultName = "OpenAbyss-Client"
 )
 
-func handleError(err error, msg string) {
-	if err != nil {
-		log.Fatalln(msg, err)
-	}
-}
-
 func main() {
 	args := ParseArguments()
 
@@ -42,7 +36,7 @@ func main() {
 	// Client Reqeust
 	if args.GetKeys {
 		resp, err := client.GetKeys(ctx, &pb.EmptyMessage{})
-		handleError(err, "could no get keys")
+		utils.HandleErr(err, "could no get keys")
 
 		if err == nil {
 			log.Printf("Response[%d]:\n", len(resp.Entities))
@@ -53,7 +47,7 @@ func main() {
 		}
 	} else if args.GetKeyNames {
 		resp, err := client.GetKeyNames(ctx, &pb.EmptyMessage{})
-		handleError(err, "could no get names")
+		utils.HandleErr(err, "could no get names")
 		if err == nil {
 			log.Printf("Response[%d]:\n", len(resp.Keys))
 			for idx, entryKey := range resp.Keys {
@@ -64,12 +58,11 @@ func main() {
 		resp, err := client.GenerateKeyPair(ctx, &pb.GenerateEntityRequest{
 			Name: args.GenerateKeyPair,
 		})
-		handleError(err, "could not generate keypair for given name")
+		utils.HandleErr(err, "could not generate keypair for given name")
 
 		if err == nil {
 			log.Println("Response:")
 			log.Printf("Generated keypair for '%s':\n", resp.Name)
-			log.Println(resp.PublicKey)
 		}
 	} else if len(args.EncryptFile) > 0 {
 		if len(args.StoragePath) == 0 { // Validate acompaning output destination
@@ -98,7 +91,7 @@ func main() {
 					KeyName:     args.KeyId,
 				})
 				if err != nil {
-					log.Fatalln("failed to encrypt file:", err)
+					utils.HandleErr(err, "failed to encrypt file")
 				} else {
 					storedFilePath := path.Join(resp.FileStoragePath, resp.FileId)
 					log.Printf("Encrypted '%s' -> '%s' successfuly!\n", args.EncryptFile, storedFilePath)

@@ -132,7 +132,11 @@ func ShowEncDecryptMenu() {
 			if data, err := ioutil.ReadFile(filePath); err != nil {
 				log.Println("could not read given file:", err)
 			} else {
-				entity.Encrypt(data, destPath, sk)
+				if destWriter, err := os.Create(destPath); err != nil {
+					utils.HandleErr(err, "failed to create path")
+				} else {
+					entity.Encrypt(data, destWriter, sk)
+				}
 			}
 		} else {
 			log.Fatalln("no private key selected")
@@ -143,7 +147,11 @@ func ShowEncDecryptMenu() {
 			if data, err := ioutil.ReadFile(filePath); err != nil {
 				log.Println("could not read given file:", err)
 			} else {
-				entity.Decrypt(data, destPath, sk)
+				if destWriter, err := os.Create(destPath); err != nil {
+					utils.HandleErr(err, "failed to create path")
+				} else {
+					entity.Decrypt(data, destWriter, sk)
+				}
 			}
 		} else {
 			log.Fatalln("no private key selected")

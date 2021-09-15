@@ -15,14 +15,6 @@ import (
 	"regexp"
 )
 
-// Reused Structures
-var (
-	emptyEncryptResult = pb.EncryptResult{
-		FileStoragePath: "",
-		FileId:          "",
-	}
-)
-
 // Encrypts requested file, saving the location to an internal structure
 func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*pb.EncryptResult, error) {
 	// Adjust root path
@@ -30,9 +22,9 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 	log.Printf("[EncryptFile]: storagePath extracted: '%s' -'%s'\n", in.StoragePath, storagePath)
 
 	// Verify no duplicates
-	if _, err := storage.Internal.GetFileByPath(storagePath); err == nil {
+	if _, err := storage.Internal.GetFileByPath(path.Join(storagePath, in.FileName)); err == nil {
 		log.Printf("[EncryptFile]: Duplicate internal FilePath found '%s'\n", storagePath)
-		return &emptyEncryptResult, errors.New("duplicte internal file path'" + storagePath + "'")
+		return &pb.EncryptResult{}, errors.New("duplicte internal file path'" + storagePath + "'")
 	}
 
 	// Handle Storage Directory
@@ -56,13 +48,20 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 
 		// Encrypt the data
 		actualStoredPath := path.Join(storageDir, fileId)
-		log.Printf("[EncryptFile]: storing '%s' -> '%s'\n", in.FileName, actualStoredPath)
-		err = entity.Encrypt(in.FileBytes, actualStoredPath, sk.PrivateKey)
+		log.Printf("[EncryptFile]: storing '%s' -> '%s'\n", path.Join(storagePath, in.FileName), actualStoredPath)
+
+		if destWriter, err := os.Create(actualStoredPath); err != nil {
+			utils.HandleErr(err, "[EncryptFile]: failed to create file path")
+		} else {
+			if err := entity.Encrypt(in.FileBytes, destWriter, sk.PrivateKey); err != nil {
+				utils.HandleErr(err, "[EncryptFile]: failed to encrypt")
+			}
+		}
 
 		// Store data in internal storage
-		if err := storage.Internal.Store(fileId, storagePath, storage.Type_File); err != nil {
+		if err := storage.Internal.Store(fileId, path.Join(storagePath, in.FileName), storage.Type_File); err != nil {
 			log.Printf("[EncryptFile]: Failed to store encrypted file internally: %v\n", err)
-			return &emptyEncryptResult, errors.New("could not store data internally")
+			return &pb.EncryptResult{}, errors.New("could not store data internally")
 		} else {
 			storage.Internal.WriteToFile()
 			log.Println("[EncryptFile]: Successfully stored encrypted data internally")
@@ -74,6 +73,9 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 		}, err
 	} else {
 		err = errors.New("key id not found")
-		return &emptyEncryptResult, err
+		return &pb.EncryptResult{}, err
+	}
+}
+
 	}
 }
