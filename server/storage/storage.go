@@ -1,6 +1,9 @@
 package storage
 
 import (
+	"encoding/json"
+	"errors"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -78,4 +81,50 @@ func (fsMap *FileStorageMap) Store(fileId string, filePath string, fileType uint
 	}
 
 	return nil
+}
+
+// Handles fetching given file from internal store
+func (fsMap *FileStorageMap) GetFileByPath(filePath string) (*FileStorage, error) {
+	fsPtr := fsMap
+
+	// NOTE: string.Split could create empty strings since the root
+	//  split creates an empty string when split ie. '/file'
+	subdirs := strings.Split(path.Dir(filePath), "/")
+
+	// Traverse sub-storage
+	for _, p := range subdirs {
+		// Ignore empty paths
+		if p == "" {
+			continue
+		}
+
+		// Traverse Storage Map
+		fsPtr = fsPtr.GetSubStorage(p)
+		if fsPtr == nil {
+			return nil, errors.New("sub-storage '" + p + "' not found")
+		}
+	}
+
+	// Create storage entry
+	if fileStorage := fsPtr.GetStorage(path.Base(filePath)); fileStorage != nil {
+		return fileStorage, nil
+	} else {
+		return nil, errors.New("file storage '" + path.Base(filePath) + "' not found")
+	}
+}
+
+// Writes internal data to file
+func (fsMap *FileStorageMap) WriteToFile() (int, error) {
+	// Open & Save data
+	if file, err := os.OpenFile(InternalFilePath, os.O_RDWR, 0644); err != nil {
+		return 0, err
+	} else {
+		data, _ := json.Marshal(Internal)
+		if bytesWritten, err := file.Write(data); err != nil {
+			return bytesWritten, err
+		} else {
+			file.Close()
+			return bytesWritten, err
+		}
+	}
 }

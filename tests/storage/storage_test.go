@@ -79,3 +79,27 @@ func TestFileStorage_Store_RecursiveSubDir_Success(t *testing.T) {
 	assert.Equal(t, hexFileId, storageFile.Name, "stored assigned filename should match SHA256 Sum")
 	assert.Equal(t, filePath, storageFile.Path, "stored file should contain the client's full path")
 }
+
+func TestFileStorage_Store_GetRootFile_Success(t *testing.T) {
+	filePath := "/path/to/file"
+	fileId := sha256.Sum256([]byte(filePath))
+	hexFileId := hex.EncodeToString(fileId[:])
+	storage.Internal = storage.FileStorageMap{}
+
+	// Store file internally
+	err := storage.Internal.Store(hexFileId, filePath, storage.Type_File)
+
+	assert.Nil(t, err, "internal store should not have failed")
+	assert.Greater(t, len(storage.Internal.StorageMap), 0, "internal storage map should contain data")
+
+	// Fetch file by path
+	fileStorage, err := storage.Internal.GetFileByPath(filePath)
+
+	assert.Nil(t, err, "internal storage GetFileByPath should not fail")
+	assert.NotNil(t, fileStorage, "filestorage should contain file storage")
+
+	// Validate FileStorage correctness
+	assert.Equal(t, filePath, fileStorage.Path, "file storage meta: path does not match")
+	assert.Equal(t, hexFileId, fileStorage.Name, "file storage meta: fileId does not match")
+	assert.Equal(t, storage.Type_File, fileStorage.Type, "file storage meta: file type does not match")
+}
