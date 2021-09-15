@@ -46,3 +46,9 @@ func Init() {
 	}
 
 }
+
+// Closes and cleans up internal data
+func Close() error {
+	_, err := Internal.WriteToFile()
+	return err
+}
