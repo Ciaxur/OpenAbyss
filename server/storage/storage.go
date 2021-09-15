@@ -83,13 +83,12 @@ func (fsMap *FileStorageMap) Store(fileId string, filePath string, fileType uint
 	return nil
 }
 
-// Handles fetching given file from internal store
-func (fsMap *FileStorageMap) GetFileByPath(filePath string) (*FileStorage, error) {
+func (fsMap *FileStorageMap) GetSubStorageByPath(filePath string) (*FileStorageMap, error) {
 	fsPtr := fsMap
 
 	// NOTE: string.Split could create empty strings since the root
 	//  split creates an empty string when split ie. '/file'
-	subdirs := strings.Split(path.Dir(filePath), "/")
+	subdirs := strings.Split(filePath, "/")
 
 	// Traverse sub-storage
 	for _, p := range subdirs {
@@ -105,8 +104,20 @@ func (fsMap *FileStorageMap) GetFileByPath(filePath string) (*FileStorage, error
 		}
 	}
 
+	return fsPtr, nil
+}
+
+// Handles fetching given file from internal store
+// Returns an error if not found
+func (fsMap *FileStorageMap) GetFileByPath(filePath string) (*FileStorage, error) {
+	// Get internal Sub-Storage
+	fsMap, err := fsMap.GetSubStorageByPath(path.Dir(filePath))
+	if err != nil {
+		return nil, err
+	}
+
 	// Create storage entry
-	if fileStorage := fsPtr.GetStorage(path.Base(filePath)); fileStorage != nil {
+	if fileStorage := fsMap.GetStorage(path.Base(filePath)); fileStorage != nil {
 		return fileStorage, nil
 	} else {
 		return nil, errors.New("file storage '" + path.Base(filePath) + "' not found")
