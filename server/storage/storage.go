@@ -116,7 +116,7 @@ func (fsMap *FileStorageMap) GetFileByPath(filePath string) (*FileStorage, error
 // Writes internal data to file
 func (fsMap *FileStorageMap) WriteToFile() (int, error) {
 	// Open & Save data
-	if file, err := os.OpenFile(InternalFilePath, os.O_RDWR, 0644); err != nil {
+	if file, err := os.OpenFile(InternalConfigPath, os.O_RDWR, 0644); err != nil {
 		return 0, err
 	} else {
 		data, _ := json.Marshal(Internal)

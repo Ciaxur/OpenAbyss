@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"io/ioutil"
 	"log"
 	"openabyss/entity"
 	pb "openabyss/proto/server"
@@ -28,7 +30,7 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 	}
 
 	// Handle Storage Directory
-	storageDir := path.Join("./", ".storage")
+	storageDir := path.Join("./", storage.InternalStoragePath)
 	if !utils.DirExists(storageDir) {
 		os.Mkdir(storageDir, 0755)
 	}
@@ -55,6 +57,7 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 		} else {
 			if err := entity.Encrypt(in.FileBytes, destWriter, sk.PrivateKey); err != nil {
 				utils.HandleErr(err, "[EncryptFile]: failed to encrypt")
+				destWriter.Close()
 			}
 		}
 
@@ -77,5 +80,49 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 	}
 }
 
+// Encrypts requested file, saving the location to an internal structure
+func (s openabyss_server) DecryptFile(ctx context.Context, in *pb.DecryptRequest) (*pb.FilePacket, error) {
+	// Get suplied entity based on name
+	sk := entity.Store.Get(string(in.PrivateKeyName))
+	if sk == nil {
+		log.Printf("[DecryptFile]: private key '%s' not found\n", in.PrivateKeyName)
+		return &pb.FilePacket{}, errors.New("supplied key name not found")
+	}
+
+	// Adjust root path
+	storagePath := regexp.MustCompile(`^(\.*)/`).ReplaceAllString(in.FilePath, "")
+	log.Printf("[DecryptFile]: storagePath extracted: '%s' -'%s'\n", in.FilePath, storagePath)
+
+	// Obtain from internal storage
+	fsFile, err := storage.Internal.GetFileByPath(storagePath)
+	if err != nil {
+		log.Printf("[DecryptFile]: File '%s' not found\n", in.FilePath)
+		return &pb.FilePacket{}, errors.New("file '" + storagePath + "' not found")
+	}
+
+	// Decrypt the data
+	encFilePath := path.Join(storage.InternalStoragePath, fsFile.Name)
+
+	if fsBytes, err := ioutil.ReadFile(encFilePath); err != nil {
+		log.Printf("[DecryptFile]: Failed to read '%s'\n", encFilePath)
+		return &pb.FilePacket{}, err
+	} else {
+		destWriter := bytes.NewBuffer(nil)
+
+		// Attempt to Decrypt data
+		if err := entity.Decrypt(fsBytes, destWriter, sk.PrivateKey); err != nil {
+			log.Printf("[DecryptFile]: Failed to decrypt file '%s'\n", encFilePath)
+			return &pb.FilePacket{}, err
+		}
+		log.Printf("[DecryptFile]: Successfuly decrypted file '%s'\n", encFilePath)
+
+		// Successful Response
+		return &pb.FilePacket{
+			FileBytes:   destWriter.Bytes(),
+			SizeInBytes: int64(destWriter.Len()),
+			FileName:    path.Base(fsFile.Path),
+			StoragePath: fsFile.Path,
+			KeyName:     string(in.PrivateKeyName),
+		}, nil
 	}
 }

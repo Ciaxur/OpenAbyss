@@ -24,7 +24,9 @@ type OpenAbyssClient interface {
 	GetKeys(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*GetKeysResponse, error)
 	// Generates new Keypair
 	GenerateKeyPair(ctx context.Context, in *GenerateEntityRequest, opts ...grpc.CallOption) (*Entity, error)
+	// Encrypt/Decrypt File
 	EncryptFile(ctx context.Context, in *FilePacket, opts ...grpc.CallOption) (*EncryptResult, error)
+	DecryptFile(ctx context.Context, in *DecryptRequest, opts ...grpc.CallOption) (*FilePacket, error)
 	// Lists stored path contents
 	ListPathContents(ctx context.Context, in *ListPathContentRequest, opts ...grpc.CallOption) (*PathContent, error)
 }
@@ -73,6 +75,15 @@ func (c *openAbyssClient) EncryptFile(ctx context.Context, in *FilePacket, opts 
 	return out, nil
 }
 
+func (c *openAbyssClient) DecryptFile(ctx context.Context, in *DecryptRequest, opts ...grpc.CallOption) (*FilePacket, error) {
+	out := new(FilePacket)
+	err := c.cc.Invoke(ctx, "/server.OpenAbyss/DecryptFile", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *openAbyssClient) ListPathContents(ctx context.Context, in *ListPathContentRequest, opts ...grpc.CallOption) (*PathContent, error) {
 	out := new(PathContent)
 	err := c.cc.Invoke(ctx, "/server.OpenAbyss/ListPathContents", in, out, opts...)
@@ -92,7 +103,9 @@ type OpenAbyssServer interface {
 	GetKeys(context.Context, *EmptyMessage) (*GetKeysResponse, error)
 	// Generates new Keypair
 	GenerateKeyPair(context.Context, *GenerateEntityRequest) (*Entity, error)
+	// Encrypt/Decrypt File
 	EncryptFile(context.Context, *FilePacket) (*EncryptResult, error)
+	DecryptFile(context.Context, *DecryptRequest) (*FilePacket, error)
 	// Lists stored path contents
 	ListPathContents(context.Context, *ListPathContentRequest) (*PathContent, error)
 	mustEmbedUnimplementedOpenAbyssServer()
@@ -113,6 +126,9 @@ func (UnimplementedOpenAbyssServer) GenerateKeyPair(context.Context, *GenerateEn
 }
 func (UnimplementedOpenAbyssServer) EncryptFile(context.Context, *FilePacket) (*EncryptResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EncryptFile not implemented")
+}
+func (UnimplementedOpenAbyssServer) DecryptFile(context.Context, *DecryptRequest) (*FilePacket, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DecryptFile not implemented")
 }
 func (UnimplementedOpenAbyssServer) ListPathContents(context.Context, *ListPathContentRequest) (*PathContent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListPathContents not implemented")
@@ -202,6 +218,24 @@ func _OpenAbyss_EncryptFile_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OpenAbyss_DecryptFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DecryptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpenAbyssServer).DecryptFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/server.OpenAbyss/DecryptFile",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpenAbyssServer).DecryptFile(ctx, req.(*DecryptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _OpenAbyss_ListPathContents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListPathContentRequest)
 	if err := dec(in); err != nil {
@@ -242,6 +276,10 @@ var OpenAbyss_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "EncryptFile",
 			Handler:    _OpenAbyss_EncryptFile_Handler,
+		},
+		{
+			MethodName: "DecryptFile",
+			Handler:    _OpenAbyss_DecryptFile_Handler,
 		},
 		{
 			MethodName: "ListPathContents",

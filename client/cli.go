@@ -11,9 +11,11 @@ type Arguments struct {
 	GenerateKeyPair string
 
 	// ENCRYPT/DECRYPT
-	EncryptFile string
-	StoragePath string
-	KeyId       string
+	EncryptFile      string
+	DecryptFile      string
+	FilePacketOutput string
+	StoragePath      string
+	KeyId            string
 }
 
 func ParseArguments() Arguments {
@@ -24,16 +26,20 @@ func ParseArguments() Arguments {
 
 	// ENCRYPT/DECRYPT
 	var flagEncryptFile = flag.String("encrypt", "", "Encrypts given path, storing it in given storage path")
+	var flagDecryptFile = flag.String("decrypt", "", "Decrypts file form given path, responding with file data")
+	var flagFilePacketOutput = flag.String("file-packet-out", "", "Destination for incoming file packet data. Default: Outputs to stdout")
 	var flagStoragePath = flag.String("storage-path", "", "Internal path of where to store data")
 	var flagKeyId = flag.String("key-id", "", "Key's id/name used to encrypt")
 
 	flag.Parse()
 	return Arguments{
-		GetKeyNames:     *flagGetKeyNames,
-		GetKeys:         *flagGetKeys,
-		GenerateKeyPair: *flagGenerateKeyPair,
-		EncryptFile:     *flagEncryptFile,
-		StoragePath:     *flagStoragePath,
-		KeyId:           *flagKeyId,
+		GetKeyNames:      *flagGetKeyNames,
+		GetKeys:          *flagGetKeys,
+		GenerateKeyPair:  *flagGenerateKeyPair,
+		EncryptFile:      *flagEncryptFile,
+		DecryptFile:      *flagDecryptFile,
+		FilePacketOutput: *flagFilePacketOutput,
+		StoragePath:      *flagStoragePath,
+		KeyId:            *flagKeyId,
 	}
 }

@@ -136,6 +136,7 @@ func ShowEncDecryptMenu() {
 					utils.HandleErr(err, "failed to create path")
 				} else {
 					entity.Encrypt(data, destWriter, sk)
+					destWriter.Close()
 				}
 			}
 		} else {
@@ -151,6 +152,7 @@ func ShowEncDecryptMenu() {
 					utils.HandleErr(err, "failed to create path")
 				} else {
 					entity.Decrypt(data, destWriter, sk)
+					destWriter.Close()
 				}
 			}
 		} else {

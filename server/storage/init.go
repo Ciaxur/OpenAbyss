@@ -16,13 +16,13 @@ func Init() {
 		log.Fatalln("could not get cwd", err)
 	}
 
-	InternalFilePath = path.Join(wd, ".storage", "internal.json")
-	log.Println("internal path", InternalFilePath)
+	InternalConfigPath = path.Join(wd, InternalStoragePath, "internal.json")
+	log.Println("internal path", InternalConfigPath)
 
 	// Check if internal file storeage exists
-	if utils.FileExists(InternalFilePath) {
-		log.Printf("[storage]: internal persistant file '%s' exists\n", InternalFilePath)
-		fileBuffer, _ := ioutil.ReadFile(InternalFilePath)
+	if utils.FileExists(InternalConfigPath) {
+		log.Printf("[storage]: internal persistant file '%s' exists\n", InternalConfigPath)
+		fileBuffer, _ := ioutil.ReadFile(InternalConfigPath)
 		if err := json.Unmarshal(fileBuffer, &Internal); err != nil {
 			log.Fatalln("internal storage unmarshal error:", err)
 		}
@@ -30,13 +30,13 @@ func Init() {
 	} else {
 		// Create Storage directory
 		log.Println("[storage]: no internal persistant file found")
-		log.Println("[storage]: creating:", path.Dir(InternalFilePath))
-		if err := os.MkdirAll(path.Dir(InternalFilePath), 0755); err != nil {
-			log.Fatalf("could not created path '%s': %v\n", path.Dir(InternalFilePath), err)
+		log.Println("[storage]: creating:", path.Dir(InternalConfigPath))
+		if err := os.MkdirAll(path.Dir(InternalConfigPath), 0755); err != nil {
+			log.Fatalf("could not created path '%s': %v\n", path.Dir(InternalConfigPath), err)
 		}
 
 		// Write empty data
-		if file, err := os.Create(InternalFilePath); err != nil {
+		if file, err := os.Create(InternalConfigPath); err != nil {
 			log.Fatalln("could not create internal storage file:", err)
 		} else {
 			data, _ := json.Marshal(Internal)

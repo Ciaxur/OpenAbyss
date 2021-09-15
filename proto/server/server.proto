@@ -13,8 +13,9 @@ service OpenAbyss {
   // Generates new Keypair
   rpc GenerateKeyPair(GenerateEntityRequest) returns (Entity) {}
 
-
+  // Encrypt/Decrypt File
   rpc EncryptFile(FilePacket) returns (EncryptResult) {}
+  rpc DecryptFile(DecryptRequest) returns (FilePacket) {}
   
   // Lists stored path contents
   rpc ListPathContents(ListPathContentRequest) returns (PathContent) {}
@@ -29,6 +30,11 @@ message FilePacket {
   string  KeyName = 5;
 }
 
+message DecryptRequest {
+  string FilePath = 1;
+  bytes PrivateKeyName = 2;
+}
+
 message EncryptResult {
   string FileStoragePath = 1;
   string FileId = 2;
@@ -37,7 +43,7 @@ message EncryptResult {
 // ENTITY
 message Entity {
   string Name = 1;
-  bytes PublicKey = 2;
+  bytes PublicKeyName = 2;
 }
 
 message GenerateEntityRequest {

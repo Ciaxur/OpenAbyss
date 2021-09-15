@@ -2,6 +2,8 @@ package entity
 
 import (
 	"crypto/rsa"
+	"openabyss/server/storage"
+	"path"
 )
 
 var (
@@ -9,7 +11,7 @@ var (
 		Keys:   make(map[string]Entity),
 		Length: 0,
 	}
-	KeyStorePath = ".storage/keys"
+	KeyStorePath = path.Join(storage.InternalStoragePath, "keys")
 )
 
 type Entity struct {

@@ -47,8 +47,8 @@ func (s openabyss_server) GetKeys(ctx context.Context, in *pb.EmptyMessage) (*pb
 
 		// Construct restponse for the entry
 		respObj.Entities[idx] = &pb.Entity{
-			Name:      v.Name,
-			PublicKey: publicKeyBuffer.Bytes(),
+			Name:          v.Name,
+			PublicKeyName: publicKeyBuffer.Bytes(),
 		}
 		idx += 1
 	}
@@ -71,8 +71,8 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 		entity.Store.Add(e1)
 
 		return &pb.Entity{
-			Name:      e1.Name,
-			PublicKey: x509.MarshalPKCS1PublicKey(e1.PublicKey),
+			Name:          e1.Name,
+			PublicKeyName: x509.MarshalPKCS1PublicKey(e1.PublicKey),
 		}, nil
 	} else {
 		log.Printf("[GenerateKeyPair]: Could not generate KeyPair for '%s' key\n", in.Name)

@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"path"
 	"time"
 
@@ -42,7 +44,7 @@ func main() {
 			log.Printf("Response[%d]:\n", len(resp.Entities))
 			for _, entry := range resp.Entities {
 				log.Printf("== [%s] ==\n", entry.Name)
-				log.Println(string(entry.PublicKey))
+				log.Println(string(entry.PublicKeyName))
 			}
 		}
 	} else if args.GetKeyNames {
@@ -97,6 +99,50 @@ func main() {
 					log.Printf("Encrypted '%s' -> '%s' successfuly!\n", args.EncryptFile, storedFilePath)
 				}
 			}
+		}
+	} else if len(args.DecryptFile) > 0 {
+		// Check: Required Key-Id Argument
+		if len(args.KeyId) == 0 {
+			log.Fatalln("KeyId is required to decrypt the file")
+		}
+
+		// Issue request
+		resp, err := client.DecryptFile(ctx, &pb.DecryptRequest{
+			FilePath:       args.DecryptFile,
+			PrivateKeyName: []byte(args.KeyId),
+		})
+
+		// Handle resposne
+		if err != nil {
+			utils.HandleErr(err, "could no decrypt file")
+		} else {
+			fileBuffer := make([]byte, resp.SizeInBytes)
+			gReader, err := gzip.NewReader(bytes.NewBuffer(resp.FileBytes))
+			if err != nil {
+				utils.HandleErr(err, "gzip failed to extract data")
+				os.Exit(1)
+			}
+			gReader.Read(fileBuffer)
+
+			// Output to a file
+			if len(args.FilePacketOutput) > 0 {
+				log.Println("Response:")
+				fmt.Printf("File Name: %s\n", resp.FileName)
+				fmt.Printf("File Size in Bytes: %d Bytes\n", resp.SizeInBytes)
+
+				if fd, err := os.Create(args.FilePacketOutput); err != nil {
+					utils.HandleErr(err, "failed to create file")
+				} else {
+					fd.Write(fileBuffer)
+					fd.Close()
+
+					fmt.Println("Data saved to:", args.FilePacketOutput)
+				}
+
+			} else { // Output to stdout
+				fmt.Print(string(fileBuffer))
+			}
+
 		}
 	}
 

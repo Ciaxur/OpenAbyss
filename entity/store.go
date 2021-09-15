@@ -16,8 +16,9 @@ func (entityStore *EntityStore) Add(elt Entity) {
 /**
  * Return entity given entity's name
  */
-func (entityStore *EntityStore) Get(keyName string) Entity {
-	return entityStore.Keys[keyName]
+func (entityStore *EntityStore) Get(keyName string) *Entity {
+	entity := entityStore.Keys[keyName]
+	return &entity
 }
 
 /**

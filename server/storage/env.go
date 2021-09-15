@@ -6,7 +6,8 @@ var (
 		StorageMap: make(map[string]FileStorageMap),
 		Storage:    make(map[string]FileStorage),
 	}
-	InternalFilePath string
+	InternalStoragePath string = ".storage"
+	InternalConfigPath  string
 )
 
 // File Type "Enum" Mapping
