@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"log"
 	"openabyss/entity"
 	pb "openabyss/proto/server"
@@ -12,6 +13,8 @@ import (
 
 // Obtains available stored Entity Keys
 func (s openabyss_server) GetKeyNames(ctx context.Context, in *pb.EmptyMessage) (*pb.GetKeyNamesResponse, error) {
+	log.Printf("[GetKeyNames]: Total Entities in Store: %d\n", entity.Store.Length)
+
 	keyResp := &pb.GetKeyNamesResponse{
 		Keys: make([]string, entity.Store.Length),
 	}
@@ -27,6 +30,8 @@ func (s openabyss_server) GetKeyNames(ctx context.Context, in *pb.EmptyMessage) 
 
 // Obtains available stored Entities without the Private Keys
 func (s openabyss_server) GetKeys(ctx context.Context, in *pb.EmptyMessage) (*pb.GetKeysResponse, error) {
+	log.Printf("[GetKeys]: Total Entities in Store: %d\n", entity.Store.Length)
+
 	respObj := &pb.GetKeysResponse{
 		Entities: make([]*pb.Entity, entity.Store.Length),
 	}
@@ -53,16 +58,24 @@ func (s openabyss_server) GetKeys(ctx context.Context, in *pb.EmptyMessage) (*pb
 
 // Generate a keypair given a unique key name
 func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEntityRequest) (*pb.Entity, error) {
-	e1, err := entity.GenerateKeys("keys", in.Name, 2048)
+	// Early return: Keypair name already exists
+	if entity.Store.Has(in.Name) {
+		log.Printf("[GenerateKeyPair]: Could not generate. KeyPair '%s' already exists\n", in.Name)
+		return nil, errors.New("keypair name already exists")
+	}
+
+	log.Printf("[GenerateKeyPair]: Generating KeyPair for '%s' key\n", in.Name)
+	e1, err := entity.GenerateKeys(entity.KeyStorePath, in.Name, 2048)
 	if err == nil {
 		log.Println("Generated Key:", e1.Name)
 		entity.Store.Add(e1)
-		entity.Store.Length += 1
 
 		return &pb.Entity{
 			Name:      e1.Name,
 			PublicKey: x509.MarshalPKCS1PublicKey(e1.PublicKey),
 		}, nil
+	} else {
+		log.Printf("[GenerateKeyPair]: Could not generate KeyPair for '%s' key\n", in.Name)
 	}
 	return nil, err
 }

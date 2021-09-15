@@ -23,7 +23,7 @@ func Init() {
 	if utils.FileExists(InternalFilePath) {
 		log.Printf("[storage]: internal persistant file '%s' exists\n", InternalFilePath)
 		fileBuffer, _ := ioutil.ReadFile(InternalFilePath)
-		if err := json.Unmarshal(fileBuffer, Internal); err != nil {
+		if err := json.Unmarshal(fileBuffer, &Internal); err != nil {
 			log.Fatalln("internal storage unmarshal error:", err)
 		}
 
