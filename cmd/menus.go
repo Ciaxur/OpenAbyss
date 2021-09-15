@@ -51,11 +51,10 @@ func ShowKeysMenu() {
 		}
 		utils.HandleErr(err, "keyname prompt error")
 
-		e1, err := entity.GenerateKeys("keys", keyname, 2048)
+		e1, err := entity.GenerateKeys(entity.KeyStorePath, keyname, 2048)
 		if err == nil {
 			log.Println("Generated Key:", e1.Name)
 			entity.Store.Add(e1)
-			entity.Store.Length += 1
 		}
 	} else if idx == 1 { // LIST KEYS
 		if entity.Store.Length == 0 {

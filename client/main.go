@@ -45,7 +45,7 @@ func main() {
 		handleError(err, "could no get keys")
 
 		if err == nil {
-			log.Println("Response:")
+			log.Printf("Response[%d]:\n", len(resp.Entities))
 			for _, entry := range resp.Entities {
 				log.Printf("== [%s] ==\n", entry.Name)
 				log.Println(string(entry.PublicKey))
@@ -55,7 +55,7 @@ func main() {
 		resp, err := client.GetKeyNames(ctx, &pb.EmptyMessage{})
 		handleError(err, "could no get names")
 		if err == nil {
-			log.Println("Response:")
+			log.Printf("Response[%d]:\n", len(resp.Keys))
 			for idx, entryKey := range resp.Keys {
 				log.Printf("%d) %s\n", idx, entryKey)
 			}

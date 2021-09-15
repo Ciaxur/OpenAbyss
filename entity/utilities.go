@@ -8,7 +8,7 @@ import (
 
 // Attempts to load keys into Entity object
 func LoadKeys() error {
-	files, err := ioutil.ReadDir("keys")
+	files, err := ioutil.ReadDir(KeyStorePath)
 	e := Entity{}
 	if err != nil {
 		return err
@@ -17,9 +17,9 @@ func LoadKeys() error {
 	for _, file := range files {
 		if !file.IsDir() {
 			if strings.HasSuffix(file.Name(), "pub") {
-				e.PublicKey = DecodePublicKey("keys", file.Name())
+				e.PublicKey = DecodePublicKey(KeyStorePath, file.Name())
 			} else {
-				e.PrivateKey = DecodePrivateKey("keys", file.Name())
+				e.PrivateKey = DecodePrivateKey(KeyStorePath, file.Name())
 				e.Name = file.Name()
 			}
 		}

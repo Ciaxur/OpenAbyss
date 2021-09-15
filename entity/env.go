@@ -9,6 +9,7 @@ var (
 		Keys:   make(map[string]Entity),
 		Length: 0,
 	}
+	KeyStorePath = ".storage/keys"
 )
 
 type Entity struct {

@@ -10,13 +10,8 @@ import (
 )
 
 func main() {
-	// Load in Keys if available
-	err := entity.LoadKeys()
-	if err == nil {
-		log.Printf("Loaded in %d keys\n", entity.Store.Length)
-	} else {
-		log.Println("No keys loaded")
-	}
+	// Initiate Entity Store
+	entity.Init()
 
 	for isDone := false; !isDone; {
 		prompt := promptui.Select{
