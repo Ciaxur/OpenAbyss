@@ -83,6 +83,22 @@ func (fsMap *FileStorageMap) Store(fileId string, filePath string, fileType uint
 	return nil
 }
 
+// Handles removing storage entry retuning the actual file path storage if successful
+func (fsMap *FileStorageMap) RemoveStorage(ssPath string) (string, error) {
+	// Obtain Sub Storage by path
+	if fsMap, err := fsMap.GetSubStorageByPath(path.Dir(ssPath)); err != nil {
+		return "", err
+	} else {
+		// Store internal path & remove entry
+		internalFilepath := path.Join(InternalStoragePath, fsMap.Storage[path.Base(ssPath)].Name)
+		delete(fsMap.Storage, path.Base(ssPath))
+
+		return internalFilepath, nil
+	}
+}
+
+// Handles fetching given Sub-Storage from internal store
+// Returns an error if not found
 func (fsMap *FileStorageMap) GetSubStorageByPath(filePath string) (*FileStorageMap, error) {
 	fsPtr := fsMap
 

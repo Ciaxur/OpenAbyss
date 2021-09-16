@@ -17,6 +17,9 @@ type Arguments struct {
 	FilePacketOutput string
 	StoragePath      string
 	KeyId            string
+
+	// REMOVE
+	RemoveFile bool
 }
 
 func ParseArguments() Arguments {
@@ -43,6 +46,10 @@ func ParseArguments() Arguments {
 	var flagKeyId = flag.String("key-id", "", "Key's id/name used to encrypt")
 	flag.StringVar(flagKeyId, "k", "", "Key's id/name used to encrypt")
 
+	// REMOVE
+	var flagRemoveFile = flag.Bool("remove", false, "Removes internal entry")
+	flag.BoolVar(flagRemoveFile, "r", false, "Removes internal entry")
+
 	flag.Parse()
 	return Arguments{
 		GetKeyNames:      *flagGetKeyNames,
@@ -54,5 +61,6 @@ func ParseArguments() Arguments {
 		FilePacketOutput: *flagFilePacketOutput,
 		StoragePath:      *flagStoragePath,
 		KeyId:            *flagKeyId,
+		RemoveFile:       *flagRemoveFile,
 	}
 }

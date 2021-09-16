@@ -27,6 +27,8 @@ type OpenAbyssClient interface {
 	// Encrypt/Decrypt File
 	EncryptFile(ctx context.Context, in *FilePacket, opts ...grpc.CallOption) (*EncryptResult, error)
 	DecryptFile(ctx context.Context, in *DecryptRequest, opts ...grpc.CallOption) (*FilePacket, error)
+	// Internal FileStorage Mods
+	ModifyEntity(ctx context.Context, in *EntityMod, opts ...grpc.CallOption) (*EmptyMessage, error)
 	// Lists stored path contents
 	ListPathContents(ctx context.Context, in *ListPathContentRequest, opts ...grpc.CallOption) (*PathContent, error)
 }
@@ -84,6 +86,15 @@ func (c *openAbyssClient) DecryptFile(ctx context.Context, in *DecryptRequest, o
 	return out, nil
 }
 
+func (c *openAbyssClient) ModifyEntity(ctx context.Context, in *EntityMod, opts ...grpc.CallOption) (*EmptyMessage, error) {
+	out := new(EmptyMessage)
+	err := c.cc.Invoke(ctx, "/server.OpenAbyss/ModifyEntity", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *openAbyssClient) ListPathContents(ctx context.Context, in *ListPathContentRequest, opts ...grpc.CallOption) (*PathContent, error) {
 	out := new(PathContent)
 	err := c.cc.Invoke(ctx, "/server.OpenAbyss/ListPathContents", in, out, opts...)
@@ -106,6 +117,8 @@ type OpenAbyssServer interface {
 	// Encrypt/Decrypt File
 	EncryptFile(context.Context, *FilePacket) (*EncryptResult, error)
 	DecryptFile(context.Context, *DecryptRequest) (*FilePacket, error)
+	// Internal FileStorage Mods
+	ModifyEntity(context.Context, *EntityMod) (*EmptyMessage, error)
 	// Lists stored path contents
 	ListPathContents(context.Context, *ListPathContentRequest) (*PathContent, error)
 	mustEmbedUnimplementedOpenAbyssServer()
@@ -129,6 +142,9 @@ func (UnimplementedOpenAbyssServer) EncryptFile(context.Context, *FilePacket) (*
 }
 func (UnimplementedOpenAbyssServer) DecryptFile(context.Context, *DecryptRequest) (*FilePacket, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DecryptFile not implemented")
+}
+func (UnimplementedOpenAbyssServer) ModifyEntity(context.Context, *EntityMod) (*EmptyMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ModifyEntity not implemented")
 }
 func (UnimplementedOpenAbyssServer) ListPathContents(context.Context, *ListPathContentRequest) (*PathContent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListPathContents not implemented")
@@ -236,6 +252,24 @@ func _OpenAbyss_DecryptFile_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OpenAbyss_ModifyEntity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EntityMod)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpenAbyssServer).ModifyEntity(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/server.OpenAbyss/ModifyEntity",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpenAbyssServer).ModifyEntity(ctx, req.(*EntityMod))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _OpenAbyss_ListPathContents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListPathContentRequest)
 	if err := dec(in); err != nil {
@@ -280,6 +314,10 @@ var OpenAbyss_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DecryptFile",
 			Handler:    _OpenAbyss_DecryptFile_Handler,
+		},
+		{
+			MethodName: "ModifyEntity",
+			Handler:    _OpenAbyss_ModifyEntity_Handler,
 		},
 		{
 			MethodName: "ListPathContents",

@@ -154,6 +154,25 @@ func main() {
 			}
 
 		}
+	} else if args.RemoveFile {
+		// Check: Required argument filepath
+		if len(args.FilePath) == 0 {
+			log.Fatalln("FilePath is required to remove it")
+		}
+
+		// Issue request
+		_, err := client.ModifyEntity(ctx, &pb.EntityMod{
+			FilePath: args.FilePath,
+			Remove:   args.RemoveFile,
+		})
+
+		// Check status
+		if err != nil {
+			utils.HandleErr(err, "failed to modify entity")
+			os.Exit(1)
+		} else {
+			log.Printf("Successfuly removed '%s'\n", args.FilePath)
+		}
 	}
 
 }

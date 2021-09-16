@@ -177,3 +177,54 @@ func TestFileStorage_Store_GetRecursiveStorageByPath_Success(t *testing.T) {
 	assert.Equal(t, hexFileId, fileStorage.Name, "file storage meta: fileId does not match")
 	assert.Equal(t, storage.Type_File, fileStorage.Type, "file storage meta: file type does not match")
 }
+
+func TestFileStorage_Remove_RootFile_Success(t *testing.T) {
+	filePath := "/file"
+	fileId := sha256.Sum256([]byte(filePath))
+	hexFileId := hex.EncodeToString(fileId[:])
+	storage.Internal = storage.FileStorageMap{}
+
+	// Store file internally
+	err := storage.Internal.Store(hexFileId, filePath, storage.Type_File)
+
+	assert.Nil(t, err, "internal store failed")
+	assert.Greater(t, len(storage.Internal.Storage), 0, "internal storage does not contain data")
+
+	_, ok := storage.Internal.Storage[path.Base(filePath)]
+	assert.True(t, ok, "file not stored in root storage")
+
+	// Remove internal file
+	internalFilepath, err := storage.Internal.RemoveStorage(filePath)
+	assert.Nil(t, err, "internal storage failed to remove storage")
+	assert.NotEmpty(t, internalFilepath, "internal storage failed to return internal file path after removal")
+	assert.Equal(t, path.Join(storage.InternalStoragePath, hexFileId), internalFilepath, "incorrect internal storage path returned")
+
+	// Verify removal
+	fsFile, err := storage.Internal.GetFileByPath(filePath)
+	assert.NotNil(t, err, "internal storage did not fail to find internal file")
+	assert.Nil(t, fsFile, "internal storage found removed internal file")
+}
+
+func TestFileStorage_Remove_RecursiveSubStorage_Success(t *testing.T) {
+	filePath := "/path/to/file"
+	fileId := sha256.Sum256([]byte(filePath))
+	hexFileId := hex.EncodeToString(fileId[:])
+	storage.Internal = storage.FileStorageMap{}
+
+	// Store file internally
+	err := storage.Internal.Store(hexFileId, filePath, storage.Type_File)
+
+	assert.Nil(t, err, "internal store failed")
+	assert.Greater(t, len(storage.Internal.StorageMap), 0, "internal storage map does not contain data")
+
+	// Remove internal file
+	internalFilepath, err := storage.Internal.RemoveStorage(filePath)
+	assert.Nil(t, err, "internal storage failed to remove storage")
+	assert.NotEmpty(t, internalFilepath, "internal storage failed to return internal file path after removal")
+	assert.Equal(t, path.Join(storage.InternalStoragePath, hexFileId), internalFilepath, "incorrect internal storage path returned")
+
+	// Verify removal
+	fsFile, err := storage.Internal.GetFileByPath(filePath)
+	assert.NotNil(t, err, "internal storage did not fail to find internal file")
+	assert.Nil(t, fsFile, "internal storage found removed internal file")
+}

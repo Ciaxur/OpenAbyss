@@ -17,6 +17,9 @@ service OpenAbyss {
   rpc EncryptFile(FilePacket) returns (EncryptResult) {}
   rpc DecryptFile(DecryptRequest) returns (FilePacket) {}
   
+  // Internal FileStorage Mods
+  rpc ModifyEntity(EntityMod) returns (EmptyMessage) {}
+  
   // Lists stored path contents
   rpc ListPathContents(ListPathContentRequest) returns (PathContent) {}
 }
@@ -38,6 +41,12 @@ message DecryptRequest {
 message EncryptResult {
   string FileStoragePath = 1;
   string FileId = 2;
+}
+
+// MOD
+message EntityMod {
+  string FilePath = 1;
+  bool Remove = 2;
 }
 
 // ENTITY
