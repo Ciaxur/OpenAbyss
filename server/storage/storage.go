@@ -3,7 +3,7 @@ package storage
 import (
 	"encoding/json"
 	"errors"
-	"os"
+	"io/ioutil"
 	"path"
 	"strings"
 	"time"
@@ -89,8 +89,13 @@ func (fsMap *FileStorageMap) RemoveStorage(ssPath string) (string, error) {
 	if fsMap, err := fsMap.GetSubStorageByPath(path.Dir(ssPath)); err != nil {
 		return "", err
 	} else {
+		fsStorage := fsMap.GetStorage(path.Base(ssPath))
+		if fsStorage == nil {
+			return "", errors.New("storage entry not found")
+		}
+
 		// Store internal path & remove entry
-		internalFilepath := path.Join(InternalStoragePath, fsMap.Storage[path.Base(ssPath)].Name)
+		internalFilepath := path.Join(InternalStoragePath, fsStorage.Name)
 		delete(fsMap.Storage, path.Base(ssPath))
 
 		return internalFilepath, nil
@@ -143,15 +148,9 @@ func (fsMap *FileStorageMap) GetFileByPath(filePath string) (*FileStorage, error
 // Writes internal data to file
 func (fsMap *FileStorageMap) WriteToFile() (int, error) {
 	// Open & Save data
-	if file, err := os.OpenFile(InternalConfigPath, os.O_RDWR, 0644); err != nil {
+	data, _ := json.Marshal(Internal)
+	if err := ioutil.WriteFile(InternalConfigPath, data, 0644); err != nil {
 		return 0, err
-	} else {
-		data, _ := json.Marshal(Internal)
-		if bytesWritten, err := file.Write(data); err != nil {
-			return bytesWritten, err
-		} else {
-			file.Close()
-			return bytesWritten, err
-		}
 	}
+	return len(data), nil
 }

@@ -21,12 +21,17 @@ import (
 func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*pb.EncryptResult, error) {
 	// Adjust root path
 	storagePath := regexp.MustCompile(`^(\.*)/`).ReplaceAllString(in.StoragePath, "")
-	log.Printf("[EncryptFile]: storagePath extracted: '%s' -'%s'\n", in.StoragePath, storagePath)
+	log.Printf("[EncryptFile]: storagePath extracted: '%s' - '%s'\n", in.StoragePath, storagePath)
+
+	// Adjust for internal root path
+	if storagePath == "" {
+		storagePath = "/"
+	}
 
 	// Verify no duplicates
 	if _, err := storage.Internal.GetFileByPath(path.Join(storagePath, in.FileName)); err == nil {
-		log.Printf("[EncryptFile]: Duplicate internal FilePath found '%s'\n", storagePath)
-		return &pb.EncryptResult{}, errors.New("duplicte internal file path'" + storagePath + "'")
+		log.Printf("[EncryptFile]: Duplicate internal FilePath found '%s'\n", path.Join(storagePath, in.FileName))
+		return &pb.EncryptResult{}, errors.New("duplicte internal file path'" + path.Join(storagePath, in.FileName) + "'")
 	}
 
 	// Handle Storage Directory

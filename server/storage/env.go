@@ -1,10 +1,14 @@
 package storage
 
+import "time"
+
 // Internal FileStorage
 var (
 	Internal FileStorageMap = FileStorageMap{
-		StorageMap: make(map[string]FileStorageMap),
-		Storage:    make(map[string]FileStorage),
+		CreatedAt_UnixTimestamp:  uint64(time.Now().Unix()),
+		ModifiedAt_UnixTimestamp: uint64(time.Now().Unix()),
+		StorageMap:               make(map[string]FileStorageMap),
+		Storage:                  make(map[string]FileStorage),
 	}
 	InternalStoragePath string = ".storage"
 	InternalConfigPath  string
