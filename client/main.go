@@ -25,7 +25,11 @@ const (
 func main() {
 	args := ParseArguments()
 
-	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial(
+		address,
+		grpc.WithInsecure(),
+	)
+
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
