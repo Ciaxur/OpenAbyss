@@ -188,6 +188,32 @@ func main() {
 		} else {
 			log.Printf("Successfuly removed '%s'\n", args.FilePath)
 		}
+	} else if args.ListPath {
+		if len(args.StoragePath) == 0 {
+			log.Fatalln("Storage path argument missing")
+		}
+
+		// Issue request & handle response
+		req := pb.ListPathContentRequest{
+			Path:      args.StoragePath,
+			Recursive: args.RecursivePath,
+		}
+		if resp, err := client.ListPathContents(ctx, &req); err != nil {
+			utils.HandleErr(err, "list path error")
+			os.Exit(1)
+		} else {
+			if len(resp.Content) > 0 {
+				log.Println("Internal Storage Content:")
+				for _, entry := range resp.Content {
+					createdDate := time.Unix(int64(entry.CreatedUnixTimestamp), 0).Format(time.RFC822)
+					modifiedDate := time.Unix(int64(entry.ModifiedUnixTimestamp), 0).Format(time.RFC822)
+
+					log.Printf("[%s]: Created at '%s' | Last Modified at '%s'\n", entry.Path, createdDate, modifiedDate)
+				}
+			} else {
+				log.Println("No internal content")
+			}
+		}
 	}
 
 }

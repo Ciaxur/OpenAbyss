@@ -18,7 +18,11 @@ type Arguments struct {
 	StoragePath      string
 	KeyId            string
 
-	// REMOVE/FOCRCE
+	// PATH
+	ListPath      bool
+	RecursivePath bool
+
+	// REMOVE/FORCE
 	RemoveFile bool
 	Force      bool // Used to force overwrite
 }
@@ -47,6 +51,11 @@ func ParseArguments() Arguments {
 	var flagKeyId = flag.String("key-id", "", "Key's id/name used to encrypt")
 	flag.StringVar(flagKeyId, "k", "", "Key's id/name used to encrypt")
 
+	// PATH
+	var flagListPath = flag.Bool("list-path", false, "List an internal path given by the 'storage-path' argument")
+	flag.BoolVar(flagListPath, "l", false, "List an internal path given by the 'storage-path' argument")
+	var flagRecursive = flag.Bool("recursive", false, "Enabled recursive path listing")
+
 	// REMOVE
 	var flagRemoveFile = flag.Bool("remove", false, "Removes internal entry")
 	flag.BoolVar(flagRemoveFile, "r", false, "Removes internal entry")
@@ -65,6 +74,8 @@ func ParseArguments() Arguments {
 		FilePacketOutput: *flagFilePacketOutput,
 		StoragePath:      *flagStoragePath,
 		KeyId:            *flagKeyId,
+		ListPath:         *flagListPath,
+		RecursivePath:    *flagRecursive,
 		RemoveFile:       *flagRemoveFile,
 		Force:            *flagForce,
 	}

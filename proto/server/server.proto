@@ -21,7 +21,7 @@ service OpenAbyss {
   rpc ModifyEntity(EntityMod) returns (EmptyMessage) {}
   
   // Lists stored path contents
-  rpc ListPathContents(ListPathContentRequest) returns (PathContent) {}
+  rpc ListPathContents(ListPathContentRequest) returns (PathResponse) {}
 }
 
 // ENCRYPT/DECRYPT
@@ -76,15 +76,18 @@ message GetKeyNamesResponse {
 // PATHS
 message ListPathContentRequest {
   string Path = 1;
+  bool Recursive = 2;
 }
 
 message ContentType {
-  bool IsDirectory = 1;
-  string Name = 2;
-  uint64 CreatedUnixTimestamp = 3;
+  string Name = 1;
+  string Path = 2;
+  uint64 SizeInBytes = 3;
+  uint64 CreatedUnixTimestamp = 4;
+  uint64 ModifiedUnixTimestamp = 5;
 }
 
-message PathContent {
+message PathResponse {
   repeated ContentType Content = 1;
 }
 

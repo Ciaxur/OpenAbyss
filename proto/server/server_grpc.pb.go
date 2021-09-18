@@ -30,7 +30,7 @@ type OpenAbyssClient interface {
 	// Internal FileStorage Mods
 	ModifyEntity(ctx context.Context, in *EntityMod, opts ...grpc.CallOption) (*EmptyMessage, error)
 	// Lists stored path contents
-	ListPathContents(ctx context.Context, in *ListPathContentRequest, opts ...grpc.CallOption) (*PathContent, error)
+	ListPathContents(ctx context.Context, in *ListPathContentRequest, opts ...grpc.CallOption) (*PathResponse, error)
 }
 
 type openAbyssClient struct {
@@ -95,8 +95,8 @@ func (c *openAbyssClient) ModifyEntity(ctx context.Context, in *EntityMod, opts 
 	return out, nil
 }
 
-func (c *openAbyssClient) ListPathContents(ctx context.Context, in *ListPathContentRequest, opts ...grpc.CallOption) (*PathContent, error) {
-	out := new(PathContent)
+func (c *openAbyssClient) ListPathContents(ctx context.Context, in *ListPathContentRequest, opts ...grpc.CallOption) (*PathResponse, error) {
+	out := new(PathResponse)
 	err := c.cc.Invoke(ctx, "/server.OpenAbyss/ListPathContents", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ type OpenAbyssServer interface {
 	// Internal FileStorage Mods
 	ModifyEntity(context.Context, *EntityMod) (*EmptyMessage, error)
 	// Lists stored path contents
-	ListPathContents(context.Context, *ListPathContentRequest) (*PathContent, error)
+	ListPathContents(context.Context, *ListPathContentRequest) (*PathResponse, error)
 	mustEmbedUnimplementedOpenAbyssServer()
 }
 
@@ -146,7 +146,7 @@ func (UnimplementedOpenAbyssServer) DecryptFile(context.Context, *DecryptRequest
 func (UnimplementedOpenAbyssServer) ModifyEntity(context.Context, *EntityMod) (*EmptyMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ModifyEntity not implemented")
 }
-func (UnimplementedOpenAbyssServer) ListPathContents(context.Context, *ListPathContentRequest) (*PathContent, error) {
+func (UnimplementedOpenAbyssServer) ListPathContents(context.Context, *ListPathContentRequest) (*PathResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListPathContents not implemented")
 }
 func (UnimplementedOpenAbyssServer) mustEmbedUnimplementedOpenAbyssServer() {}

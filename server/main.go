@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net"
 	pb "openabyss/proto/server"
@@ -12,11 +11,6 @@ import (
 
 	"google.golang.org/grpc"
 )
-
-// TODO:
-func (s openabyss_server) ListPathContents(ctx context.Context, in *pb.ListPathContentRequest) (*pb.PathContent, error) {
-	return &pb.PathContent{}, nil
-}
 
 func onSignalChannel_cleanup(sigChan chan os.Signal) {
 	<-sigChan
