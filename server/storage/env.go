@@ -32,6 +32,7 @@ type FileStorageMap struct {
 type FileStorage struct {
 	Path                     string `json:"path"`
 	Name                     string `json:"name"`
+	SizeInBytes              uint64 `json:"sizeInBytes"`
 	Type                     uint8  `json:"type"`
 	CreatedAt_UnixTimestamp  uint64 `json:"created_at_unix_timestamp"`
 	ModifiedAt_UnixTimestamp uint64 `json:"modified_at_unix_timestamp"`

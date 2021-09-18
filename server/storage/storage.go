@@ -47,7 +47,7 @@ func (fsMap *FileStorageMap) GetStorage(storageName string) *FileStorage {
 
 // Handles splitting up file path & storing given fileId under split file paths
 //  where filePath MUST include the filename
-func (fsMap *FileStorageMap) Store(fileId string, filePath string, fileType uint8) error {
+func (fsMap *FileStorageMap) Store(fileId string, filePath string, fileByteSize uint64, fileType uint8) error {
 	fsPtr := fsMap
 
 	// NOTE: string.Split could create empty strings since the root
@@ -75,6 +75,7 @@ func (fsMap *FileStorageMap) Store(fileId string, filePath string, fileType uint
 	fsPtr.Storage[path.Base(filePath)] = FileStorage{
 		Path:                     filePath,
 		Name:                     fileId,
+		SizeInBytes:              fileByteSize,
 		Type:                     fileType,
 		CreatedAt_UnixTimestamp:  uint64(time.Now().Unix()),
 		ModifiedAt_UnixTimestamp: uint64(time.Now().Unix()),
