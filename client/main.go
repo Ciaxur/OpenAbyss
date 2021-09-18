@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"regexp"
 	"time"
 
 	pb "openabyss/proto/server"
@@ -98,11 +99,21 @@ func main() {
 					FileBytes:   compBuffer.Bytes(),
 					SizeInBytes: int64(compBuffer.Len()),
 					FileName:    path.Base(args.FilePath),
-					StoragePath: args.StoragePath,
-					KeyName:     args.KeyId,
+					Options: &pb.FileOptions{
+						StoragePath: args.StoragePath,
+						KeyName:     args.KeyId,
+						Overwrite:   args.Force,
+					},
 				})
 				if err != nil {
-					utils.HandleErr(err, "failed to encrypt file")
+					// Handle duplicate internal store file found
+					isDuplicate := regexp.MustCompile("(?i)duplicte").MatchString(err.Error())
+					if isDuplicate {
+						log.Println("Duplicate stored file found. Use -force to overwrite")
+					} else {
+						utils.HandleErr(err, "failed to encrypt file")
+					}
+
 				} else {
 					storedFilePath := path.Join(resp.FileStoragePath, resp.FileId)
 					log.Printf("Encrypted '%s' -> '%s' successfuly!\n", args.FilePath, storedFilePath)

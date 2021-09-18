@@ -18,14 +18,15 @@ type Arguments struct {
 	StoragePath      string
 	KeyId            string
 
-	// REMOVE
+	// REMOVE/FOCRCE
 	RemoveFile bool
+	Force      bool // Used to force overwrite
 }
 
 func ParseArguments() Arguments {
 	// KEYS/ENTRIES
-	var flagGetKeyNames = flag.Bool("get-key-names", false, "Retrieves available key names")
-	var flagGetKeys = flag.Bool("get-keys", false, "Retrieves available keys with their name and public key")
+	var flagGetKeyNames = flag.Bool("list-key-names", false, "Retrieves available key names")
+	var flagGetKeys = flag.Bool("list-keys", false, "Retrieves available keys with their name and public key")
 	var flagGenerateKeyPair = flag.String("generate-keypair", "", "Generate a keypair given the key's name")
 	var flagFilePath = flag.String("filepath", "", "Path to file")
 	flag.StringVar(flagFilePath, "f", "", "Path to file")
@@ -50,6 +51,9 @@ func ParseArguments() Arguments {
 	var flagRemoveFile = flag.Bool("remove", false, "Removes internal entry")
 	flag.BoolVar(flagRemoveFile, "r", false, "Removes internal entry")
 
+	// FORCE (overwrite)
+	var flagForce = flag.Bool("force", false, "Forces supplied action")
+
 	flag.Parse()
 	return Arguments{
 		GetKeyNames:      *flagGetKeyNames,
@@ -62,5 +66,6 @@ func ParseArguments() Arguments {
 		StoragePath:      *flagStoragePath,
 		KeyId:            *flagKeyId,
 		RemoveFile:       *flagRemoveFile,
+		Force:            *flagForce,
 	}
 }

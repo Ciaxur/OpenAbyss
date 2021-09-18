@@ -20,8 +20,8 @@ import (
 // Encrypts requested file, saving the location to an internal structure
 func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*pb.EncryptResult, error) {
 	// Adjust root path
-	storagePath := regexp.MustCompile(`^(\.*)/`).ReplaceAllString(in.StoragePath, "")
-	log.Printf("[EncryptFile]: storagePath extracted: '%s' - '%s'\n", in.StoragePath, storagePath)
+	storagePath := regexp.MustCompile(`^(\.*)/`).ReplaceAllString(in.Options.StoragePath, "")
+	log.Printf("[EncryptFile]: storagePath extracted: '%s' - '%s'\n", in.Options.StoragePath, storagePath)
 
 	// Adjust for internal root path
 	if storagePath == "" {
@@ -29,9 +29,11 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 	}
 
 	// Verify no duplicates
-	if _, err := storage.Internal.GetFileByPath(path.Join(storagePath, in.FileName)); err == nil {
-		log.Printf("[EncryptFile]: Duplicate internal FilePath found '%s'\n", path.Join(storagePath, in.FileName))
-		return &pb.EncryptResult{}, errors.New("duplicte internal file path'" + path.Join(storagePath, in.FileName) + "'")
+	if !in.Options.Overwrite {
+		if _, err := storage.Internal.GetFileByPath(path.Join(storagePath, in.FileName)); err == nil {
+			log.Printf("[EncryptFile]: Duplicate internal FilePath found '%s'\n", path.Join(storagePath, in.FileName))
+			return &pb.EncryptResult{}, errors.New("duplicte internal file path'" + path.Join(storagePath, in.FileName) + "'")
+		}
 	}
 
 	// Handle Storage Directory
@@ -41,7 +43,7 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 	}
 
 	// Get requested key
-	sk, ok := entity.Store.Keys[in.KeyName]
+	sk, ok := entity.Store.Keys[in.Options.KeyName]
 	var err error = nil
 	if ok {
 		// Stored in internal storage for lookup
@@ -126,8 +128,10 @@ func (s openabyss_server) DecryptFile(ctx context.Context, in *pb.DecryptRequest
 			FileBytes:   destWriter.Bytes(),
 			SizeInBytes: int64(destWriter.Len()),
 			FileName:    path.Base(fsFile.Path),
-			StoragePath: fsFile.Path,
-			KeyName:     string(in.PrivateKeyName),
+			Options: &pb.FileOptions{
+				StoragePath: fsFile.Path,
+				KeyName:     string(in.PrivateKeyName),
+			},
 		}, nil
 	}
 }

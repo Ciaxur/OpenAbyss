@@ -26,11 +26,16 @@ service OpenAbyss {
 
 // ENCRYPT/DECRYPT
 message FilePacket {
-  bytes   FileBytes = 1;
-  int64   SizeInBytes = 2;
-  string  FileName = 3;
-  string  StoragePath = 4;
-  string  KeyName = 5;
+  bytes       FileBytes = 1;
+  int64       SizeInBytes = 2;
+  string      FileName = 3;
+  FileOptions options = 4;
+}
+
+message FileOptions {
+  bool    Overwrite = 1;
+  string  StoragePath = 2;
+  string  KeyName = 3;
 }
 
 message DecryptRequest {
