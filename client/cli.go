@@ -45,14 +45,14 @@ func ParseArguments() Arguments {
 	var flagFilePacketOutput = flag.String("file-packet-out", "", "Destination for incoming file packet data. Default: Outputs to stdout")
 	flag.StringVar(flagFilePacketOutput, "o", "", "Destination for incoming file packet data. Default: Outputs to stdout")
 
-	var flagStoragePath = flag.String("storage-path", "", "Internal path of where to store data")
-	flag.StringVar(flagStoragePath, "s", "", "Internal path of where to store data")
+	var flagStoragePath = flag.String("storage-path", "/", "Internal path of where to store data")
+	flag.StringVar(flagStoragePath, "s", "/", "Internal path of where to store data")
 
 	var flagKeyId = flag.String("key-id", "", "Key's id/name used to encrypt")
 	flag.StringVar(flagKeyId, "k", "", "Key's id/name used to encrypt")
 
 	// PATH
-	var flagListPath = flag.Bool("list-path", false, "List an internal path given by the 'storage-path' argument")
+	var flagListPath = flag.Bool("list-path", false, "List an internal path given by the 'storage-path' argument | Root Storage by default")
 	flag.BoolVar(flagListPath, "l", false, "List an internal path given by the 'storage-path' argument")
 	var flagRecursive = flag.Bool("recursive", false, "Enabled recursive path listing")
 
