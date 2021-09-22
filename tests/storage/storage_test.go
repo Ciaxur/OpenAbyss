@@ -17,7 +17,7 @@ func TestFileStorage_Store_RootFile_Success(t *testing.T) {
 	storage.Internal = storage.FileStorageMap{}
 	fileSize := 255
 
-	err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File)
+	_, err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File, false)
 
 	assert.Nil(t, err, "internal store failed")
 	assert.Greater(t, len(storage.Internal.Storage), 0, "internal storage does not contain data")
@@ -41,7 +41,7 @@ func TestFileStorage_Store_RecursiveSubDir_Success(t *testing.T) {
 	hexFileId := hex.EncodeToString(fileId[:])
 	storage.Internal = storage.FileStorageMap{}
 
-	err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File)
+	_, err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File, false)
 
 	assert.Nil(t, err, "internal store failed")
 	assert.Greater(t, len(storage.Internal.StorageMap), 0, "internal storage map does not contain data")
@@ -92,7 +92,7 @@ func TestFileStorage_Store_GetRootSubStorageByPath_Success(t *testing.T) {
 	storage.Internal = storage.FileStorageMap{}
 
 	// Store file internally
-	err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File)
+	_, err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File, false)
 
 	assert.Nil(t, err, "internal store failed")
 	assert.Greater(t, len(storage.Internal.Storage), 0, "internal storage does not contain data")
@@ -119,7 +119,7 @@ func TestFileStorage_Store_GetRecursiveSubStorageByPath_Success(t *testing.T) {
 	storage.Internal = storage.FileStorageMap{}
 
 	// Store file internally
-	err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File)
+	_, err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File, false)
 
 	assert.Nil(t, err, "internal store failed")
 	assert.Greater(t, len(storage.Internal.StorageMap), 0, "internal storage map does not contain data")
@@ -146,7 +146,7 @@ func TestFileStorage_Store_GetRootFileByPath_Success(t *testing.T) {
 	storage.Internal = storage.FileStorageMap{}
 
 	// Store file internally
-	err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File)
+	_, err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File, false)
 
 	assert.Nil(t, err, "internal store failed")
 	assert.Greater(t, len(storage.Internal.Storage), 0, "internal storage does not contain data")
@@ -172,7 +172,7 @@ func TestFileStorage_Store_GetRecursiveStorageByPath_Success(t *testing.T) {
 	storage.Internal = storage.FileStorageMap{}
 
 	// Store file internally
-	err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File)
+	_, err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File, false)
 
 	assert.Nil(t, err, "internal store failed")
 	assert.Greater(t, len(storage.Internal.StorageMap), 0, "internal storage map does not contain data")
@@ -198,7 +198,7 @@ func TestFileStorage_Remove_RootFile_Success(t *testing.T) {
 	storage.Internal = storage.FileStorageMap{}
 
 	// Store file internally
-	err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File)
+	_, err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File, false)
 
 	assert.Nil(t, err, "internal store failed")
 	assert.Greater(t, len(storage.Internal.Storage), 0, "internal storage does not contain data")
@@ -226,7 +226,7 @@ func TestFileStorage_Remove_RecursiveSubStorage_Success(t *testing.T) {
 	storage.Internal = storage.FileStorageMap{}
 
 	// Store file internally
-	err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File)
+	_, err := storage.Internal.Store(hexFileId, filePath, uint64(fileSize), storage.Type_File, false)
 
 	assert.Nil(t, err, "internal store failed")
 	assert.Greater(t, len(storage.Internal.StorageMap), 0, "internal storage map does not contain data")

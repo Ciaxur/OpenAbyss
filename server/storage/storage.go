@@ -47,7 +47,7 @@ func (fsMap *FileStorageMap) GetStorage(storageName string) *FileStorage {
 
 // Handles splitting up file path & storing given fileId under split file paths
 //  where filePath MUST include the filename
-func (fsMap *FileStorageMap) Store(fileId string, filePath string, fileByteSize uint64, fileType uint8) error {
+func (fsMap *FileStorageMap) Store(fileId string, filePath string, fileByteSize uint64, fileType uint8, overwrite bool) (*FileStorage, error) {
 	fsPtr := fsMap
 
 	// NOTE: string.Split could create empty strings since the root
@@ -72,16 +72,22 @@ func (fsMap *FileStorageMap) Store(fileId string, filePath string, fileByteSize 
 	}
 
 	// Store file data
-	fsPtr.Storage[path.Base(filePath)] = FileStorage{
+	createdAtUnixTimestamp := uint64(time.Now().Unix())
+	if _, ok := fsPtr.Storage[path.Base(filePath)]; overwrite && ok { // Overwritten data
+		createdAtUnixTimestamp = fsPtr.Storage[path.Base(filePath)].CreatedAt_UnixTimestamp
+	}
+
+	fsFile := FileStorage{
 		Path:                     filePath,
 		Name:                     fileId,
 		SizeInBytes:              fileByteSize,
 		Type:                     fileType,
-		CreatedAt_UnixTimestamp:  uint64(time.Now().Unix()),
+		CreatedAt_UnixTimestamp:  createdAtUnixTimestamp,
 		ModifiedAt_UnixTimestamp: uint64(time.Now().Unix()),
 	}
+	fsPtr.Storage[path.Base(filePath)] = fsFile
 
-	return nil
+	return &fsFile, nil
 }
 
 // Handles removing storage entry retuning the actual file path storage if successful

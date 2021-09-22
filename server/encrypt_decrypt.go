@@ -69,7 +69,7 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 		}
 
 		// Store data in internal storage
-		if err := storage.Internal.Store(fileId, path.Join(storagePath, in.FileName), uint64(in.SizeInBytes), storage.Type_File); err != nil {
+		if _, err := storage.Internal.Store(fileId, path.Join(storagePath, in.FileName), uint64(in.SizeInBytes), storage.Type_File, in.Options.Overwrite); err != nil {
 			log.Printf("[EncryptFile]: Failed to store encrypted file internally: %v\n", err)
 			return &pb.EncryptResult{}, errors.New("could not store data internally")
 		} else {
