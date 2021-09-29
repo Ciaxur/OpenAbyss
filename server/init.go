@@ -2,6 +2,7 @@ package main
 
 import (
 	"openabyss/entity"
+	"openabyss/server/configuration"
 	"openabyss/server/storage"
 )
 
@@ -11,4 +12,7 @@ func Init() {
 
 	// Load Storage
 	storage.Init()
+
+	// Load Configuration
+	configuration.Init()
 }
