@@ -12,22 +12,27 @@ import (
 	"regexp"
 	"time"
 
+	"openabyss/client/configuration"
 	pb "openabyss/proto/server"
 	"openabyss/utils"
 
 	"google.golang.org/grpc"
 )
 
-const (
-	address     = "localhost:50051"
-	defaultName = "OpenAbyss-Client"
-)
-
 func main() {
+	// Init
 	args := ParseArguments()
 
+	if args.Verbose {
+		configuration.EnableVerbose()
+	}
+
+	configuration.Init() // Client Config
+
+	grpcHost := configuration.LoadedConfig.GrpcHost
+	grpcPort := configuration.LoadedConfig.GrpcPort
 	conn, err := grpc.Dial(
-		address,
+		fmt.Sprintf("%s:%s", grpcHost, grpcPort),
 		grpc.WithInsecure(),
 	)
 

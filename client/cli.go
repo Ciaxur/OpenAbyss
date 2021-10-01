@@ -25,6 +25,9 @@ type Arguments struct {
 	// REMOVE/FORCE
 	RemoveFile bool
 	Force      bool // Used to force overwrite
+
+	// MISC.
+	Verbose bool
 }
 
 func ParseArguments() Arguments {
@@ -63,6 +66,8 @@ func ParseArguments() Arguments {
 	// FORCE (overwrite)
 	var flagForce = flag.Bool("force", false, "Forces supplied action")
 
+	var flagVerbose = flag.Bool("verbose", false, "Enables verbose printing")
+
 	flag.Parse()
 	return Arguments{
 		GetKeyNames:      *flagGetKeyNames,
@@ -78,5 +83,6 @@ func ParseArguments() Arguments {
 		RecursivePath:    *flagRecursive,
 		RemoveFile:       *flagRemoveFile,
 		Force:            *flagForce,
+		Verbose:          *flagVerbose,
 	}
 }

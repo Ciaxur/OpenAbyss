@@ -10,6 +10,7 @@ var (
 	LoadedConfig = Configuration{
 		DefaultKeyAlgorithm: "rsa",
 	}
-	InternalConfigDirPath string = ".config" // Directory that holds configs
-	InternalConfigPath    string             // Absolute path to Configuration file
+	InternalConfigDirPath string = ".config"            // Directory that holds configs
+	ConfigFileName        string = "config-server.json" // Configuration JSON Filename
+	InternalConfigPath    string                        // Absolute path to Configuration file
 )
