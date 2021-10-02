@@ -15,4 +15,10 @@ func Init() {
 
 	// Load Configuration
 	configuration.Init()
+
+	// Setup internal configuraiton
+	port = configuration.LoadedConfig.GrpcPort
+	tlsCert = configuration.LoadedConfig.TLSCertPath
+	tlsKey = configuration.LoadedConfig.TLSKeyPath
+	insecure = configuration.LoadedConfig.Insecure
 }

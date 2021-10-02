@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	pb "openabyss/proto/server"
@@ -10,6 +11,7 @@ import (
 	"syscall"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 func onSignalChannel_cleanup(sigChan chan os.Signal) {
@@ -32,12 +34,26 @@ func main() {
 	signal.Notify(sig_chan, syscall.SIGTERM, syscall.SIGINT)
 	go onSignalChannel_cleanup(sig_chan)
 
-	lis, err := net.Listen("tcp", port)
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	s := grpc.NewServer()
+	// Instantiate Server (Insecure/Secure)
+	var s *grpc.Server
+	if insecure {
+		log.Println("server: no TLS")
+		s = grpc.NewServer()
+	} else {
+		// Create TLS Credentials
+		creds, err := credentials.NewServerTLSFromFile(tlsCert, tlsKey)
+		if err != nil {
+			log.Fatalf("failed to create new server tls: %v", err)
+		}
+
+		log.Println("server: TLS loaded")
+		s = grpc.NewServer(grpc.Creds(creds))
+	}
 	pb.RegisterOpenAbyssServer(s, openabyss_server{})
 	log.Printf("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {

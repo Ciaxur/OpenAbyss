@@ -6,6 +6,9 @@ type openabyss_server struct {
 	pb.UnimplementedOpenAbyssServer
 }
 
-const (
-	port = ":50051"
+var (
+	port     = uint16(50051)
+	insecure = false // Secure by default
+	tlsCert  = "cert/server.crt"
+	tlsKey   = "cert/server.key"
 )

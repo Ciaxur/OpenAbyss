@@ -4,7 +4,8 @@ package configuration
 type Configuration struct {
 	GrpcName string `json:"grpcName"`
 	GrpcHost string `json:"grpcHost"`
-	GrpcPort string `json:"grpcPort"`
+	GrpcPort uint16 `json:"grpcPort"`
+	Insecure bool   `json:"insecure"`
 }
 
 // Assigned Default Values
@@ -12,7 +13,7 @@ var (
 	LoadedConfig = Configuration{
 		GrpcName: "OpenAbyss-Client",
 		GrpcHost: "localhost",
-		GrpcPort: "50051",
+		GrpcPort: uint16(50051),
 	}
 	InternalConfigDirPath string = ".config"            // Directory that holds configs
 	ConfigFileName        string = "config-client.json" // Configuration JSON Filename

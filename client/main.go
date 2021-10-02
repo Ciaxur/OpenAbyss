@@ -17,6 +17,7 @@ import (
 	"openabyss/utils"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 func main() {
@@ -31,13 +32,30 @@ func main() {
 
 	grpcHost := configuration.LoadedConfig.GrpcHost
 	grpcPort := configuration.LoadedConfig.GrpcPort
-	conn, err := grpc.Dial(
-		fmt.Sprintf("%s:%s", grpcHost, grpcPort),
-		grpc.WithInsecure(),
-	)
+	address := fmt.Sprintf("%s:%d", grpcHost, grpcPort)
+	var conn *grpc.ClientConn
+	var conn_err error = nil
 
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+	// Init TLS Credentials
+	if !configuration.LoadedConfig.Insecure {
+		creds, err := credentials.NewClientTLSFromFile("cert/server.crt", "")
+		if err != nil {
+			log.Fatalln("tls could not be read from file:", err)
+		}
+
+		conn, conn_err = grpc.Dial(
+			address,
+			grpc.WithTransportCredentials(creds),
+		)
+	} else {
+		conn, conn_err = grpc.Dial(
+			address,
+			grpc.WithInsecure(),
+		)
+	}
+
+	if conn_err != nil {
+		log.Fatalf("did not connect: %v", conn_err)
 	}
 	defer conn.Close()
 
