@@ -4,10 +4,11 @@ FROM golang:1.17
 WORKDIR /go/src/app
 COPY . .
 
-# Build Server Binary
+# Build Server Binary and Clean up to slim image
 RUN go mod tidy
-RUN mkdir build || \
-  go build -o build/server ./server
+RUN ./_scripts/build.sh && \
+  rm -rf /go/pkg && \
+  rm -rf ~/.cache/*
 
 # Run Built Binary
-CMD ["./build/server"]
+ENTRYPOINT ["./build/server"]
