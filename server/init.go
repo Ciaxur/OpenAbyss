@@ -4,6 +4,7 @@ import (
 	"openabyss/entity"
 	"openabyss/server/configuration"
 	"openabyss/server/storage"
+	"openabyss/utils"
 )
 
 func Init() {
@@ -21,4 +22,9 @@ func Init() {
 	tlsCert = configuration.LoadedConfig.TLSCertPath
 	tlsKey = configuration.LoadedConfig.TLSKeyPath
 	insecure = configuration.LoadedConfig.Insecure
+
+	// Validate TLS Files exist, otherwise override to Insecure
+	if !insecure && !(utils.FileExists(tlsCert) || utils.FileExists(tlsKey)) {
+		insecure = true
+	}
 }
