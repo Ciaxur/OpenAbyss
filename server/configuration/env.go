@@ -2,6 +2,7 @@ package configuration
 
 // Periodic Backup Sub-config
 type BackupSubConfiguration struct {
+	Enable          bool   `json:"enable"`          // Enable Backups
 	RetentionPeriod uint64 `json:"retentionPeriod"` // Retention Period for backups in Milliseconds
 	BackupFrequency uint64 `json:"backupFrequency"` // How frequently to backup in Milliseconds
 }
@@ -27,6 +28,7 @@ var (
 		TLSCertPath:         "cert/server.crt",
 		TLSKeyPath:          "cert/server.key",
 		Backup: BackupSubConfiguration{
+			Enable:          true,
 			RetentionPeriod: 7 * 24 * 60 * 60 * 1000, // 7 Days by default
 			BackupFrequency: 7 * 24 * 60 * 60 * 1000, // Daily backups by default
 		},

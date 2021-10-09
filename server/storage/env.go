@@ -12,6 +12,7 @@ var (
 	}
 	InternalStoragePath string = ".storage"
 	InternalConfigPath  string
+	BackupStoragePath   string = "backups" // InternalStoragePath/BackupStoragePath
 )
 
 // File Type "Enum" Mapping
