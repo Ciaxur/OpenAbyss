@@ -45,3 +45,11 @@ func Init() {
 		}
 	}
 }
+
+// Saves internal configuration to file
+func Close() {
+	data, _ := json.Marshal(LoadedConfig)
+	if err := ioutil.WriteFile(InternalConfigPath, data, 0755); err != nil {
+		log.Fatalf("[configuraiton]: failed to save internal config to file: %v\n", err.Error())
+	}
+}
