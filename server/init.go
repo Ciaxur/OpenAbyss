@@ -19,6 +19,7 @@ func Init() {
 
 	// Setup internal configuraiton
 	port = configuration.LoadedConfig.GrpcPort
+	host = configuration.LoadedConfig.GrpcHost
 	tlsCert = configuration.LoadedConfig.TLSCertPath
 	tlsKey = configuration.LoadedConfig.TLSKeyPath
 	insecure = configuration.LoadedConfig.Insecure

@@ -5,6 +5,7 @@ type Configuration struct {
 	DefaultKeyAlgorithm string `json:"defaultKeyAlgorithm"`
 	Insecure            bool   `json:"insecure"`
 	GrpcPort            uint16 `json:"grpcPort"`
+	GrpcHost            string `json:"grpcHost"`
 	TLSCertPath         string `json:"tlsCertPath"`
 	TLSKeyPath          string `json:"tlsKeyPath"`
 }
@@ -14,6 +15,7 @@ var (
 	LoadedConfig = Configuration{
 		DefaultKeyAlgorithm: "rsa",
 		Insecure:            false,
+		GrpcHost:            "0.0.0.0",
 		GrpcPort:            50051,
 		TLSCertPath:         "cert/server.crt",
 		TLSKeyPath:          "cert/server.key",

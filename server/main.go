@@ -34,7 +34,7 @@ func main() {
 	signal.Notify(sig_chan, syscall.SIGTERM, syscall.SIGINT)
 	go onSignalChannel_cleanup(sig_chan)
 
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
