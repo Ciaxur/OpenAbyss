@@ -237,6 +237,39 @@ func main() {
 				log.Println("No internal content")
 			}
 		}
-	}
+	} else if args.ListBackups {
+		// Issue request & handle response
+		if resp, err := client.ListInternalBackups(ctx, &pb.EmptyMessage{}); err != nil {
+			utils.HandleErr(err, "list backups error")
+			os.Exit(1)
+		} else {
+			if len(resp.Backups) == 0 {
+				log.Println("No existng backups")
+			} else {
+				log.Printf("%d backup entries found:\n", len(resp.Backups))
+				for idx, elt := range resp.Backups {
+					// Construct Expiration Time
+					created_at := time.UnixMilli(int64(elt.CreatedUnixTimestamp))
+					expires_at := time.Now().Add(time.Millisecond * time.Duration(elt.ExpiresInUnixTimestamp))
 
+					log.Printf("[%d]: %s\n", idx, elt.FileName)
+					log.Println("  - Created at: ", created_at.Local().String())
+					log.Println("  - Expires at: ", expires_at.Local().String())
+				}
+			}
+		}
+	} else if args.InvokeBackup {
+		// Issue backup invoke
+		if resp, err := client.InvokeNewStorageBackup(ctx, &pb.EmptyMessage{}); err != nil {
+			utils.HandleErr(err, "invoke new backup error")
+			os.Exit(1)
+		} else {
+			// Construct Expiration Time
+			expires_at := time.Now().Add(time.Millisecond * time.Duration(resp.ExpiresInUnixTimestamp))
+
+			log.Println("Successfuly backed up internal storage")
+			log.Println("  - Backup Filename: ", resp.FileName)
+			log.Println("  - Backup Expires at: ", expires_at.Local().String())
+		}
+	}
 }

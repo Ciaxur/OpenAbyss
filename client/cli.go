@@ -22,6 +22,11 @@ type Arguments struct {
 	ListPath      bool
 	RecursivePath bool
 
+	// BACKUP
+	ListBackups  bool
+	InvokeBackup bool
+	BackupIndex  int64
+
 	// REMOVE/FORCE
 	RemoveFile bool
 	Force      bool // Used to force overwrite
@@ -59,6 +64,12 @@ func ParseArguments() Arguments {
 	flag.BoolVar(flagListPath, "l", false, "List an internal path given by the 'storage-path' argument")
 	var flagRecursive = flag.Bool("recursive", false, "Enabled recursive path listing")
 
+	// BACKUP
+	var flagListBackups = flag.Bool("list-backups", false, "Lists backed up internal storage")
+	var flagBackupIndex = flag.Int64("backup-index", -1, "Index of the stored backup")
+	flag.Int64Var(flagBackupIndex, "b", -1, "Index of the stored backup")
+	var flagInvokeBackup = flag.Bool("invoke-backup", false, "Creates a new backup of the internal storage")
+
 	// REMOVE
 	var flagRemoveFile = flag.Bool("remove", false, "Removes internal entry")
 	flag.BoolVar(flagRemoveFile, "r", false, "Removes internal entry")
@@ -70,19 +81,33 @@ func ParseArguments() Arguments {
 
 	flag.Parse()
 	return Arguments{
-		GetKeyNames:      *flagGetKeyNames,
-		GetKeys:          *flagGetKeys,
-		GenerateKeyPair:  *flagGenerateKeyPair,
-		FilePath:         *flagFilePath,
+		// KEYS/ENTRIES
+		GetKeyNames:     *flagGetKeyNames,
+		GetKeys:         *flagGetKeys,
+		GenerateKeyPair: *flagGenerateKeyPair,
+		FilePath:        *flagFilePath,
+
+		// ENCRYPT/DECRYPT
 		EncryptFile:      *flagEncryptFile,
 		DecryptFile:      *flagDecryptFile,
 		FilePacketOutput: *flagFilePacketOutput,
 		StoragePath:      *flagStoragePath,
 		KeyId:            *flagKeyId,
-		ListPath:         *flagListPath,
-		RecursivePath:    *flagRecursive,
-		RemoveFile:       *flagRemoveFile,
-		Force:            *flagForce,
-		Verbose:          *flagVerbose,
+
+		// PATH
+		ListPath:      *flagListPath,
+		RecursivePath: *flagRecursive,
+
+		// BACKUP
+		ListBackups:  *flagListBackups,
+		InvokeBackup: *flagInvokeBackup,
+		BackupIndex:  *flagBackupIndex,
+
+		// REMOVE/FORCE
+		RemoveFile: *flagRemoveFile,
+		Force:      *flagForce,
+
+		// MISC.
+		Verbose: *flagVerbose,
 	}
 }
