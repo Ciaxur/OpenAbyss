@@ -31,6 +31,8 @@ type OpenAbyssClient interface {
 	ModifyEntity(ctx context.Context, in *EntityMod, opts ...grpc.CallOption) (*EmptyMessage, error)
 	// Lists stored path contents
 	ListPathContents(ctx context.Context, in *ListPathContentRequest, opts ...grpc.CallOption) (*PathResponse, error)
+	ListInternalBackups(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*BackupEntries, error)
+	InvokeNewStorageBackup(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*BackupEntry, error)
 }
 
 type openAbyssClient struct {
@@ -104,6 +106,24 @@ func (c *openAbyssClient) ListPathContents(ctx context.Context, in *ListPathCont
 	return out, nil
 }
 
+func (c *openAbyssClient) ListInternalBackups(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*BackupEntries, error) {
+	out := new(BackupEntries)
+	err := c.cc.Invoke(ctx, "/server.OpenAbyss/ListInternalBackups", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *openAbyssClient) InvokeNewStorageBackup(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*BackupEntry, error) {
+	out := new(BackupEntry)
+	err := c.cc.Invoke(ctx, "/server.OpenAbyss/InvokeNewStorageBackup", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OpenAbyssServer is the server API for OpenAbyss service.
 // All implementations must embed UnimplementedOpenAbyssServer
 // for forward compatibility
@@ -121,6 +141,8 @@ type OpenAbyssServer interface {
 	ModifyEntity(context.Context, *EntityMod) (*EmptyMessage, error)
 	// Lists stored path contents
 	ListPathContents(context.Context, *ListPathContentRequest) (*PathResponse, error)
+	ListInternalBackups(context.Context, *EmptyMessage) (*BackupEntries, error)
+	InvokeNewStorageBackup(context.Context, *EmptyMessage) (*BackupEntry, error)
 	mustEmbedUnimplementedOpenAbyssServer()
 }
 
@@ -148,6 +170,12 @@ func (UnimplementedOpenAbyssServer) ModifyEntity(context.Context, *EntityMod) (*
 }
 func (UnimplementedOpenAbyssServer) ListPathContents(context.Context, *ListPathContentRequest) (*PathResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListPathContents not implemented")
+}
+func (UnimplementedOpenAbyssServer) ListInternalBackups(context.Context, *EmptyMessage) (*BackupEntries, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListInternalBackups not implemented")
+}
+func (UnimplementedOpenAbyssServer) InvokeNewStorageBackup(context.Context, *EmptyMessage) (*BackupEntry, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InvokeNewStorageBackup not implemented")
 }
 func (UnimplementedOpenAbyssServer) mustEmbedUnimplementedOpenAbyssServer() {}
 
@@ -288,6 +316,42 @@ func _OpenAbyss_ListPathContents_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OpenAbyss_ListInternalBackups_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmptyMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpenAbyssServer).ListInternalBackups(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/server.OpenAbyss/ListInternalBackups",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpenAbyssServer).ListInternalBackups(ctx, req.(*EmptyMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OpenAbyss_InvokeNewStorageBackup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmptyMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpenAbyssServer).InvokeNewStorageBackup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/server.OpenAbyss/InvokeNewStorageBackup",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpenAbyssServer).InvokeNewStorageBackup(ctx, req.(*EmptyMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // OpenAbyss_ServiceDesc is the grpc.ServiceDesc for OpenAbyss service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -322,6 +386,14 @@ var OpenAbyss_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListPathContents",
 			Handler:    _OpenAbyss_ListPathContents_Handler,
+		},
+		{
+			MethodName: "ListInternalBackups",
+			Handler:    _OpenAbyss_ListInternalBackups_Handler,
+		},
+		{
+			MethodName: "InvokeNewStorageBackup",
+			Handler:    _OpenAbyss_InvokeNewStorageBackup_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -22,6 +22,8 @@ service OpenAbyss {
   
   // Lists stored path contents
   rpc ListPathContents(ListPathContentRequest) returns (PathResponse) {}
+  rpc ListInternalBackups(EmptyMessage) returns (BackupEntries) {}
+  rpc InvokeNewStorageBackup(EmptyMessage) returns (BackupEntry) {}
 }
 
 // ENCRYPT/DECRYPT
@@ -89,6 +91,16 @@ message ContentType {
 
 message PathResponse {
   repeated ContentType Content = 1;
+}
+
+// BACKUPS
+message BackupEntry {
+  string      FileName = 1;
+  uint64      CreatedUnixTimestamp = 2;
+  uint64      ExpiresInUnixTimestamp = 3;
+}
+message BackupEntries {
+  repeated BackupEntry Backups = 1;
 }
 
 // MISC

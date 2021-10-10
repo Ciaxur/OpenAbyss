@@ -39,14 +39,15 @@ func check_retention_expiration(dirPath string) {
 	})
 }
 
-// Storage backup logic
-func backup_current_storage(time_now_ms int64, storage_path string, backup_path string) {
+// Storage backup logic returning the backup file path created
+func backup_current_storage(time_now_ms int64, storage_path string, backup_path string) string {
 	log.Printf("[backup_manager]: Backing up %s\n", InternalStoragePath)
 
-	backup_zip_file, err := os.Create(path.Join(backup_path, fmt.Sprintf("storage_%d.zip", time_now_ms)))
+	backup_filepath := path.Join(backup_path, fmt.Sprintf("storage_%d.zip", time_now_ms))
+	backup_zip_file, err := os.Create(backup_filepath)
 	if err != nil {
 		fmt.Printf("[backup_manager]: error creating file '%s': %v", backup_path, err)
-		return
+		return ""
 	}
 	defer backup_zip_file.Close()
 	gw := zip.NewWriter(backup_zip_file)
@@ -73,12 +74,31 @@ func backup_current_storage(time_now_ms int64, storage_path string, backup_path 
 		}
 		return nil
 	})
+
+	return backup_filepath
+}
+
+// Externally invoke new backup, returning backup file path created
+func InvokeNewBackup() string {
+	// Log invokation
+	log.Println("[Internal Backup]: Invoking new Backup at, ", time.Now().UnixMilli())
+
+	// Construct Paths
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatalln("could not get cwd", err)
+	}
+	backup_dir := path.Join(wd, InternalStoragePath, BackupStoragePath)
+	storage_dir := path.Join(wd, InternalStoragePath)
+
+	// Create & Store timestamps
+	time_now := time.Now().UnixMilli()
+	LastBackup = time_now
+	return backup_current_storage(time_now, storage_dir, backup_dir)
 }
 
 // Periodically checks backup logic
 func Init_Backup_Manager() {
-	last_backup := time.Now().UnixMilli()
-
 	// Keep track of Working Direcotory
 	wd, err := os.Getwd()
 	if err != nil {
@@ -99,10 +119,11 @@ func Init_Backup_Manager() {
 
 			// Check and backup at set frequency
 			time_now := time.Now().UnixMilli()
-			dt_since_last_backup := time_now - last_backup
+			dt_since_last_backup := time_now - LastBackup
 			if dt_since_last_backup >= int64(configuration.LoadedConfig.Backup.BackupFrequency) {
-				backup_current_storage(time_now, storage_dir, backup_dir)
-				last_backup = time_now
+				backup_filepath := backup_current_storage(time_now, storage_dir, backup_dir)
+				LastBackup = time_now
+				log.Println("[backup_manager]: Backup created: ", backup_filepath)
 			}
 		} else {
 			log.Println("[backup_manager]: Backup is disabled. Exiting...")
