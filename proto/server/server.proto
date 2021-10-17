@@ -24,6 +24,10 @@ service OpenAbyss {
   rpc ListPathContents(ListPathContentRequest) returns (PathResponse) {}
   rpc ListInternalBackups(EmptyMessage) returns (BackupEntries) {}
   rpc InvokeNewStorageBackup(EmptyMessage) returns (BackupEntry) {}
+
+  // Backup Manager Requests
+  rpc GetBackupManagerConfig(EmptyMessage) returns (BackupManagerStatus) {}
+  rpc SetBackupManagerConfig(BackupManagerStatus) returns (BackupManagerStatus) {}
 }
 
 // ENCRYPT/DECRYPT
@@ -99,8 +103,17 @@ message BackupEntry {
   uint64      CreatedUnixTimestamp = 2;
   uint64      ExpiresInUnixTimestamp = 3;
 }
+
 message BackupEntries {
   repeated BackupEntry Backups = 1;
+}
+
+message BackupManagerStatus {
+  bool    IsEnabled = 1;
+  uint64  LastBackupUnixTimestamp = 2;
+  uint64  TotalBackups = 3;
+  uint64  RetentionPeriod = 4;
+  uint64  BackupFrequency = 5;
 }
 
 // MISC

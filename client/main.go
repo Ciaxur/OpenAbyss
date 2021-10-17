@@ -271,5 +271,81 @@ func main() {
 			log.Println("  - Backup Filename: ", resp.FileName)
 			log.Println("  - Backup Expires at: ", expires_at.Local().String())
 		}
+	} else if args.GetBackupManagerStatus {
+		if resp, err := client.GetBackupManagerConfig(ctx, &pb.EmptyMessage{}); err != nil {
+			utils.HandleErr(err, "get backup manager config error")
+			os.Exit(1)
+		} else {
+			lastBackup := time.UnixMilli(int64(resp.LastBackupUnixTimestamp))
+			backup_freq := time.UnixMilli(int64(resp.BackupFrequency))
+			retention_period := time.UnixMilli(int64(resp.RetentionPeriod))
+
+			log.Println("Backup Manager Configuration:")
+			fmt.Printf("IsEnabled: %v\n", resp.IsEnabled)
+			fmt.Printf("Total Backups: %d\n", resp.TotalBackups)
+
+			if lastBackup.UnixMilli() == 0 {
+				fmt.Println("Last Backup: NONE")
+			} else {
+				fmt.Printf("Last Backup: %s\n", lastBackup.Local().String())
+			}
+
+			fmt.Printf("Backup Frequency: %s\n", time.Duration(backup_freq.UnixNano()).String())
+			fmt.Printf("Retention Period: %s\n", time.Duration(retention_period.UnixNano()).String())
+		}
+	} else if args.ToggleBackupManager {
+		// Get current config
+		resp, err := client.GetBackupManagerConfig(ctx, &pb.EmptyMessage{})
+		if err != nil {
+			utils.HandleErr(err, "could not get current backup manager's from server")
+			os.Exit(1)
+		}
+
+		if resp, err := client.SetBackupManagerConfig(ctx, &pb.BackupManagerStatus{
+			IsEnabled:       !resp.IsEnabled,
+			RetentionPeriod: resp.RetentionPeriod,
+			BackupFrequency: resp.BackupFrequency,
+		}); err != nil {
+			utils.HandleErr(err, "could not update backup manager's config")
+			os.Exit(1)
+		} else {
+			log.Printf("Successfuly set Backup Manager to: %v\n", resp.IsEnabled)
+		}
+	} else if args.SetBackupRetention.Milliseconds() > 0 {
+		// Get current config
+		resp, err := client.GetBackupManagerConfig(ctx, &pb.EmptyMessage{})
+		if err != nil {
+			utils.HandleErr(err, "could not get current backup manager's from server")
+			os.Exit(1)
+		}
+
+		if _, err := client.SetBackupManagerConfig(ctx, &pb.BackupManagerStatus{
+			IsEnabled:       resp.IsEnabled,
+			RetentionPeriod: uint64(args.SetBackupRetention.Milliseconds()),
+			BackupFrequency: resp.BackupFrequency,
+		}); err != nil {
+			utils.HandleErr(err, "could not update backup manager's config")
+			os.Exit(1)
+		} else {
+			log.Printf("Successfuly updated Backup Retention Period to: %v\n", args.SetBackupRetention.String())
+		}
+	} else if args.SetBackupFrequency.Milliseconds() > 0 {
+		// Get current config
+		resp, err := client.GetBackupManagerConfig(ctx, &pb.EmptyMessage{})
+		if err != nil {
+			utils.HandleErr(err, "could not get current backup manager's from server")
+			os.Exit(1)
+		}
+
+		if _, err := client.SetBackupManagerConfig(ctx, &pb.BackupManagerStatus{
+			IsEnabled:       resp.IsEnabled,
+			RetentionPeriod: resp.RetentionPeriod,
+			BackupFrequency: uint64(args.SetBackupFrequency.Milliseconds()),
+		}); err != nil {
+			utils.HandleErr(err, "could not update backup manager's config")
+			os.Exit(1)
+		} else {
+			log.Printf("Successfuly updated Backup Frequency to: %v\n", args.SetBackupFrequency.String())
+		}
 	}
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"time"
 )
 
 type Arguments struct {
@@ -23,9 +24,13 @@ type Arguments struct {
 	RecursivePath bool
 
 	// BACKUP
-	ListBackups  bool
-	InvokeBackup bool
-	BackupIndex  int64
+	ListBackups            bool
+	InvokeBackup           bool
+	BackupIndex            int64
+	GetBackupManagerStatus bool
+	ToggleBackupManager    bool // Toggle On/Off Backup Manager
+	SetBackupRetention     time.Duration
+	SetBackupFrequency     time.Duration
 
 	// REMOVE/FORCE
 	RemoveFile bool
@@ -69,6 +74,10 @@ func ParseArguments() Arguments {
 	var flagBackupIndex = flag.Int64("backup-index", -1, "Index of the stored backup")
 	flag.Int64Var(flagBackupIndex, "b", -1, "Index of the stored backup")
 	var flagInvokeBackup = flag.Bool("invoke-backup", false, "Creates a new backup of the internal storage")
+	var flagGetBackupManagerStatus = flag.Bool("get-backup-manager-status", false, "Returns the status of the Backup Manager on the server")
+	var flagToggleBackupManager = flag.Bool("toggle-backup-manager", false, "Toggles On/Off Backup Manager on the server")
+	var flagBackupRetention = flag.Duration("set-backup-retention", 0, "Sets the backup retention period of the Backup Manager")
+	var flagBackupFrequency = flag.Duration("set-backup-frequency", 0, "Sets the backup frequency of the Backup Manager")
 
 	// REMOVE
 	var flagRemoveFile = flag.Bool("remove", false, "Removes internal entry")
@@ -99,9 +108,13 @@ func ParseArguments() Arguments {
 		RecursivePath: *flagRecursive,
 
 		// BACKUP
-		ListBackups:  *flagListBackups,
-		InvokeBackup: *flagInvokeBackup,
-		BackupIndex:  *flagBackupIndex,
+		ListBackups:            *flagListBackups,
+		InvokeBackup:           *flagInvokeBackup,
+		BackupIndex:            *flagBackupIndex,
+		GetBackupManagerStatus: *flagGetBackupManagerStatus,
+		ToggleBackupManager:    *flagToggleBackupManager,
+		SetBackupRetention:     *flagBackupRetention,
+		SetBackupFrequency:     *flagBackupFrequency,
 
 		// REMOVE/FORCE
 		RemoveFile: *flagRemoveFile,

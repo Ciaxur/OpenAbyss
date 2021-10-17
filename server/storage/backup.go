@@ -99,7 +99,10 @@ func InvokeNewBackup() string {
 
 // Periodically checks backup logic
 func Init_Backup_Manager() {
-	// Keep track of Working Direcotory
+	// Log backup manager init stage
+	log.Println("[backup_manager]: Initializing...")
+
+	// Keep track of Working Directory
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Fatalln("could not get cwd", err)

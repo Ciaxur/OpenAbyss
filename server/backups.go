@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"log"
 	pb "openabyss/proto/server"
 	"openabyss/server/configuration"
 	"openabyss/server/storage"
+	"os"
 	"path"
 	"path/filepath"
 	"time"
@@ -63,4 +65,61 @@ func (s openabyss_server) InvokeNewStorageBackup(ctx context.Context, in *pb.Emp
 		CreatedUnixTimestamp:   uint64(time_now),
 		ExpiresInUnixTimestamp: time_till_expire,
 	}, nil
+}
+
+// Returns current Backup Manager's Confifiguration
+func (s openabyss_server) GetBackupManagerConfig(ctx context.Context, in *pb.EmptyMessage) (*pb.BackupManagerStatus, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatalln("could not get cwd", err)
+	}
+	backup_dir := path.Join(wd, storage.InternalStoragePath, storage.BackupStoragePath)
+	last_backup := int64(0)
+	total_backups := 0
+
+	filepath.Walk(backup_dir, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			fmt.Printf("[server_rpc_backups]: error walking path '%s': %v", backup_dir, err)
+			return err
+		}
+
+		// Ignore root path
+		if path != backup_dir {
+			// Keep track of latest backup
+			last_mod_milli := info.ModTime().UnixMilli()
+			if last_mod_milli > last_backup {
+				last_backup = last_mod_milli
+			}
+
+			// Keep track of how many backups are stored
+			total_backups += 1
+		}
+
+		return nil
+	})
+
+	return &pb.BackupManagerStatus{
+		IsEnabled:               configuration.LoadedConfig.Backup.Enable,
+		LastBackupUnixTimestamp: uint64(last_backup),
+		TotalBackups:            uint64(total_backups),
+		RetentionPeriod:         configuration.LoadedConfig.Backup.RetentionPeriod,
+		BackupFrequency:         configuration.LoadedConfig.Backup.BackupFrequency,
+	}, nil
+}
+
+// Set Backup Manager Configuration
+func (s openabyss_server) SetBackupManagerConfig(ctx context.Context, in *pb.BackupManagerStatus) (*pb.BackupManagerStatus, error) {
+	// Re-init Backup Manager if there was a change in toggle
+	if in.IsEnabled && !configuration.LoadedConfig.Backup.Enable {
+		go storage.Init_Backup_Manager()
+	}
+
+	// Modify Backup Manager's Config
+	configuration.LoadedConfig.Backup = configuration.BackupSubConfiguration{
+		Enable:          in.IsEnabled,
+		RetentionPeriod: in.RetentionPeriod,
+		BackupFrequency: in.BackupFrequency,
+	}
+
+	return in, nil
 }
