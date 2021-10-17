@@ -31,6 +31,7 @@ service OpenAbyss {
   rpc DeleteBackup(BackupEntryRequest) returns (BackupEntry) {}
   rpc ExportBackup(BackupEntryRequest) returns (ExportedBackupResponse) {}
   rpc ImportBackup(ImportBackupRequest) returns (EmptyMessage) {}
+  rpc RestoreFromBackup(RestoreFromBackupRequest) returns (BackupEntry) {}
 }
 
 // ENCRYPT/DECRYPT
@@ -132,6 +133,10 @@ message ExportedBackupResponse {
 message ImportBackupRequest {
   string      FileName = 1;
   bytes       FileData = 2;
+}
+
+message RestoreFromBackupRequest {
+  string      FileName = 1;
 }
 
 // MISC

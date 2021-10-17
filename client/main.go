@@ -392,5 +392,16 @@ func main() {
 		} else {
 			log.Printf("Successfuly imported '%s'!\n", args.ImportBackup)
 		}
+	} else if len(args.RestoreFromBackup) > 0 {
+		if resp, err := client.RestoreFromBackup(ctx, &pb.RestoreFromBackupRequest{
+			FileName: args.RestoreFromBackup,
+		}); err != nil {
+			log.Fatalln("Failed to restore from backup:", err)
+		} else {
+			expires_at := time.Now().Add(time.Millisecond * time.Duration(resp.ExpiresInUnixTimestamp))
+
+			log.Printf("Successfully restored from backup. Backup up previous storage'%s'\n", resp.FileName)
+			log.Println("  - Expires at: ", expires_at.Local().String())
+		}
 	}
 }

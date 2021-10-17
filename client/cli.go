@@ -34,6 +34,7 @@ type Arguments struct {
 	RemoveBackup           string
 	ExportBackup           string
 	ImportBackup           string
+	RestoreFromBackup      string
 
 	// REMOVE/FORCE
 	RemoveFile bool
@@ -84,6 +85,7 @@ func ParseArguments() Arguments {
 	var flagRemoveBackup = flag.String("remove-backup", "", "Removes stored backup from the server")
 	var flagExportBackup = flag.String("export-backup", "", "Exports stored backup from the server to given filepath")
 	var flagImportBackup = flag.String("import-backup", "", "Imported given backup path to the server")
+	var flagRestoreFromBackup = flag.String("restore-backup", "", "Restores server storage from given backup name")
 
 	// REMOVE
 	var flagRemoveFile = flag.Bool("remove", false, "Removes internal entry")
@@ -124,6 +126,7 @@ func ParseArguments() Arguments {
 		RemoveBackup:           *flagRemoveBackup,
 		ExportBackup:           *flagExportBackup,
 		ImportBackup:           *flagImportBackup,
+		RestoreFromBackup:      *flagRestoreFromBackup,
 
 		// REMOVE/FORCE
 		RemoveFile: *flagRemoveFile,

@@ -62,6 +62,7 @@ func (s openabyss_server) InvokeNewStorageBackup(ctx context.Context, in *pb.Emp
 	time_till_expire := uint64(int64(configuration.LoadedConfig.Backup.RetentionPeriod) - dt_mod_time)
 
 	// Return result of backup invokation
+	log.Println("[rpc_invoke_stoage_backup]: Successfully invoked new backup:", backup_filepath)
 	return &pb.BackupEntry{
 		FileName:               path.Base(backup_filepath),
 		CreatedUnixTimestamp:   uint64(time_now),
@@ -209,4 +210,82 @@ func (s openabyss_server) ImportBackup(ctx context.Context, in *pb.ImportBackupR
 
 	log.Println("[rpc_import_backup]: Successfully imported ", backup_path)
 	return &pb.EmptyMessage{}, nil
+}
+
+// Restores server storage to a backup state
+func (s openabyss_server) RestoreFromBackup(ctx context.Context, in *pb.RestoreFromBackupRequest) (*pb.BackupEntry, error) {
+	log.Printf("[rpc_restore_backup]: Restoring from '%s' backup...\n", in.FileName)
+
+	// Construct paths
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatalln("[rpc_restore_backup]: could not get cwd", err)
+	}
+	backup_dir := path.Join(wd, storage.InternalStoragePath, storage.BackupStoragePath)
+	storage_dir := path.Join(wd, storage.InternalStoragePath)
+	backup_path := path.Join(backup_dir, in.FileName)
+
+	// Verify backup exists
+	if !utils.FileExists(backup_path) {
+		log.Println("[rpc_restore_backup]: Failed to restore, backup '%s' doesn't exist\n", in.FileName)
+		return &pb.BackupEntry{}, fmt.Errorf("backup '%s' doesn't exist\n", in.FileName)
+	}
+
+	// Invoke Backup
+	backupEntry, err := s.InvokeNewStorageBackup(ctx, &pb.EmptyMessage{})
+	if err != nil {
+		log.Println("[rpc_restore_backup]: failed to invoke new backup:", err)
+		return &pb.BackupEntry{}, fmt.Errorf("internal error")
+	}
+
+	// Save and close Storage
+	storage.Close()
+
+	// Clear existing backups
+	log.Println("[rpc_restore_backup]: Clearing existing storage ", storage_dir)
+	filepath.WalkDir(storage_dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			log.Printf("[rpc_restore_backup]: WalkDir error: %v\n", err)
+			return err
+		}
+		log.Println("Walking in:", path)
+
+		// Skip root and backups directory
+		if path == storage_dir {
+			return nil
+		} else if path == backup_dir {
+			return filepath.SkipDir
+		}
+
+		// Remove entries
+		if err := os.RemoveAll(path); err != nil {
+			log.Printf("[rpc_restore_backup]: Failed to remove '%s': %v\n", path, err)
+			return err
+		} else {
+			log.Println("Successfully removed:", path)
+		}
+
+		// Skip the directory since it was removed
+		if d.IsDir() {
+			return filepath.SkipDir
+		} else {
+			return nil
+		}
+	})
+
+	// Restore from backup zip file
+	if unzippedResults, err := utils.Unzip(backup_path, storage_dir); err != nil {
+		log.Println("[rpc_restore_backup]: failed to unzip backup:", err)
+		return &pb.BackupEntry{}, fmt.Errorf("internal error")
+	} else {
+		log.Printf("[rpc_restore_backup]: Successfully extracted %d files:\n", len(unzippedResults))
+		for idx, res := range unzippedResults {
+			fmt.Printf("\t - [%d] %s\n", idx, res)
+		}
+	}
+
+	// Reload internal Storage
+	storage.Init()
+
+	return backupEntry, nil
 }
