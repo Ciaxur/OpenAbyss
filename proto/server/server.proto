@@ -28,7 +28,8 @@ service OpenAbyss {
   // Backup Manager Requests
   rpc GetBackupManagerConfig(EmptyMessage) returns (BackupManagerStatus) {}
   rpc SetBackupManagerConfig(BackupManagerStatus) returns (BackupManagerStatus) {}
-  rpc DeleteBackup(BackupDeleteRequest) returns (BackupEntry) {}
+  rpc DeleteBackup(BackupEntryRequest) returns (BackupEntry) {}
+  rpc ExportBackup(BackupEntryRequest) returns (ExportedBackupResponse) {}
 }
 
 // ENCRYPT/DECRYPT
@@ -117,8 +118,14 @@ message BackupManagerStatus {
   uint64  BackupFrequency = 5;
 }
 
-message BackupDeleteRequest {
+message BackupEntryRequest {
   string BackupFileName = 1;
+}
+
+message ExportedBackupResponse {
+  string      FileName = 1;
+  uint64      CreatedUnixTimestamp = 2;
+  bytes       FileData = 3;
 }
 
 // MISC

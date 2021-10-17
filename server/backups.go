@@ -125,7 +125,7 @@ func (s openabyss_server) SetBackupManagerConfig(ctx context.Context, in *pb.Bac
 }
 
 // Deletes Stored backup based on Index
-func (s openabyss_server) DeleteBackup(ctx context.Context, in *pb.BackupDeleteRequest) (*pb.BackupEntry, error) {
+func (s openabyss_server) DeleteBackup(ctx context.Context, in *pb.BackupEntryRequest) (*pb.BackupEntry, error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Fatalln("could not get cwd", err)
@@ -149,5 +149,34 @@ func (s openabyss_server) DeleteBackup(ctx context.Context, in *pb.BackupDeleteR
 		FileName:               stat.Name(),
 		CreatedUnixTimestamp:   uint64(stat.ModTime().UnixMilli()),
 		ExpiresInUnixTimestamp: 0,
+	}, nil
+}
+
+// Exports given backup to the client
+func (s openabyss_server) ExportBackup(ctx context.Context, in *pb.BackupEntryRequest) (*pb.ExportedBackupResponse, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatalln("could not get cwd", err)
+	}
+	backup_dir := path.Join(wd, storage.InternalStoragePath, storage.BackupStoragePath)
+	backup_path := path.Join(backup_dir, in.BackupFileName)
+	stat, err := os.Stat(backup_path)
+	if err != nil {
+		log.Println("[rpc_export_backup]: Stat failed: ", err)
+		return nil, fmt.Errorf("given backup file '%s' not found", in.BackupFileName)
+	}
+
+	// Read backup file
+	fileData, err := os.ReadFile(backup_path)
+	if err != nil {
+		log.Println("[rpc_export_backup]: failed to read file: ", err)
+		return nil, fmt.Errorf("given backup file '%s' read error", in.BackupFileName)
+	}
+
+	log.Printf("[rpc_export_backup]: Successfuly exported '%s' backup file\n", in.BackupFileName)
+	return &pb.ExportedBackupResponse{
+		FileName:             stat.Name(),
+		CreatedUnixTimestamp: uint64(stat.ModTime().UnixMilli()),
+		FileData:             fileData,
 	}, nil
 }

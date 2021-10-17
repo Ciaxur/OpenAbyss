@@ -348,13 +348,32 @@ func main() {
 			log.Printf("Successfuly updated Backup Frequency to: %v\n", args.SetBackupFrequency.String())
 		}
 	} else if len(args.RemoveBackup) > 0 {
-		if resp, err := client.DeleteBackup(ctx, &pb.BackupDeleteRequest{
+		if resp, err := client.DeleteBackup(ctx, &pb.BackupEntryRequest{
 			BackupFileName: args.RemoveBackup,
 		}); err != nil {
 			utils.HandleErr(err, "failed to remove backup")
 			os.Exit(1)
 		} else {
 			log.Printf("Successfully removed \"%s\"\n", resp.FileName)
+		}
+	} else if len(args.ExportBackup) > 0 {
+		// Requires file path to export TO
+		if len(args.FilePath) == 0 {
+			log.Fatalln("Export Backup requires a filepath to export to!")
+		}
+
+		// Request export
+		if resp, err := client.ExportBackup(ctx, &pb.BackupEntryRequest{
+			BackupFileName: args.ExportBackup,
+		}); err != nil {
+			log.Fatalln("Export Backup Error:", err)
+		} else {
+			// Write received file bytes to file
+			if err := ioutil.WriteFile(args.FilePath, resp.FileData, 0664); err != nil {
+				log.Fatalln("Error writing received backup to file:", err)
+			} else {
+				log.Printf("Successfuly export '%s' -> '%s'\n", resp.FileName, args.FilePath)
+			}
 		}
 	}
 }

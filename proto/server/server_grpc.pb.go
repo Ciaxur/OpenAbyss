@@ -36,7 +36,8 @@ type OpenAbyssClient interface {
 	// Backup Manager Requests
 	GetBackupManagerConfig(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*BackupManagerStatus, error)
 	SetBackupManagerConfig(ctx context.Context, in *BackupManagerStatus, opts ...grpc.CallOption) (*BackupManagerStatus, error)
-	DeleteBackup(ctx context.Context, in *BackupDeleteRequest, opts ...grpc.CallOption) (*BackupEntry, error)
+	DeleteBackup(ctx context.Context, in *BackupEntryRequest, opts ...grpc.CallOption) (*BackupEntry, error)
+	ExportBackup(ctx context.Context, in *BackupEntryRequest, opts ...grpc.CallOption) (*ExportedBackupResponse, error)
 }
 
 type openAbyssClient struct {
@@ -146,9 +147,18 @@ func (c *openAbyssClient) SetBackupManagerConfig(ctx context.Context, in *Backup
 	return out, nil
 }
 
-func (c *openAbyssClient) DeleteBackup(ctx context.Context, in *BackupDeleteRequest, opts ...grpc.CallOption) (*BackupEntry, error) {
+func (c *openAbyssClient) DeleteBackup(ctx context.Context, in *BackupEntryRequest, opts ...grpc.CallOption) (*BackupEntry, error) {
 	out := new(BackupEntry)
 	err := c.cc.Invoke(ctx, "/server.OpenAbyss/DeleteBackup", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *openAbyssClient) ExportBackup(ctx context.Context, in *BackupEntryRequest, opts ...grpc.CallOption) (*ExportedBackupResponse, error) {
+	out := new(ExportedBackupResponse)
+	err := c.cc.Invoke(ctx, "/server.OpenAbyss/ExportBackup", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +187,8 @@ type OpenAbyssServer interface {
 	// Backup Manager Requests
 	GetBackupManagerConfig(context.Context, *EmptyMessage) (*BackupManagerStatus, error)
 	SetBackupManagerConfig(context.Context, *BackupManagerStatus) (*BackupManagerStatus, error)
-	DeleteBackup(context.Context, *BackupDeleteRequest) (*BackupEntry, error)
+	DeleteBackup(context.Context, *BackupEntryRequest) (*BackupEntry, error)
+	ExportBackup(context.Context, *BackupEntryRequest) (*ExportedBackupResponse, error)
 	mustEmbedUnimplementedOpenAbyssServer()
 }
 
@@ -218,8 +229,11 @@ func (UnimplementedOpenAbyssServer) GetBackupManagerConfig(context.Context, *Emp
 func (UnimplementedOpenAbyssServer) SetBackupManagerConfig(context.Context, *BackupManagerStatus) (*BackupManagerStatus, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetBackupManagerConfig not implemented")
 }
-func (UnimplementedOpenAbyssServer) DeleteBackup(context.Context, *BackupDeleteRequest) (*BackupEntry, error) {
+func (UnimplementedOpenAbyssServer) DeleteBackup(context.Context, *BackupEntryRequest) (*BackupEntry, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteBackup not implemented")
+}
+func (UnimplementedOpenAbyssServer) ExportBackup(context.Context, *BackupEntryRequest) (*ExportedBackupResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExportBackup not implemented")
 }
 func (UnimplementedOpenAbyssServer) mustEmbedUnimplementedOpenAbyssServer() {}
 
@@ -433,7 +447,7 @@ func _OpenAbyss_SetBackupManagerConfig_Handler(srv interface{}, ctx context.Cont
 }
 
 func _OpenAbyss_DeleteBackup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BackupDeleteRequest)
+	in := new(BackupEntryRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -445,7 +459,25 @@ func _OpenAbyss_DeleteBackup_Handler(srv interface{}, ctx context.Context, dec f
 		FullMethod: "/server.OpenAbyss/DeleteBackup",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OpenAbyssServer).DeleteBackup(ctx, req.(*BackupDeleteRequest))
+		return srv.(OpenAbyssServer).DeleteBackup(ctx, req.(*BackupEntryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OpenAbyss_ExportBackup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackupEntryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpenAbyssServer).ExportBackup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/server.OpenAbyss/ExportBackup",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpenAbyssServer).ExportBackup(ctx, req.(*BackupEntryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -504,6 +536,10 @@ var OpenAbyss_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteBackup",
 			Handler:    _OpenAbyss_DeleteBackup_Handler,
+		},
+		{
+			MethodName: "ExportBackup",
+			Handler:    _OpenAbyss_ExportBackup_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
