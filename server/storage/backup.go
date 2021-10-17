@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -63,10 +64,13 @@ func backup_current_storage(time_now_ms int64, storage_path string, backup_path 
 			// Read file data
 			data, _ := ioutil.ReadFile(path)
 
-			log.Printf("[backup_manager]: Zipping up[%d]: %s\n", len(data), path)
+			// Construct path with removed Prefix
+			trimmedPrefix := strings.TrimPrefix(path, storage_path+"/")
+
+			log.Printf("[backup_manager]: Zipping up[%d]: %s\n", len(data), trimmedPrefix)
 
 			// Zip file with its data
-			f, _ := gw.Create(path)
+			f, _ := gw.Create(trimmedPrefix)
 			f.Write(data)
 		} else if d.Name() == BackupStoragePath {
 			log.Printf("[backup_manager]: skipping backup storage directory %s\n", BackupStoragePath)
