@@ -38,6 +38,7 @@ type OpenAbyssClient interface {
 	SetBackupManagerConfig(ctx context.Context, in *BackupManagerStatus, opts ...grpc.CallOption) (*BackupManagerStatus, error)
 	DeleteBackup(ctx context.Context, in *BackupEntryRequest, opts ...grpc.CallOption) (*BackupEntry, error)
 	ExportBackup(ctx context.Context, in *BackupEntryRequest, opts ...grpc.CallOption) (*ExportedBackupResponse, error)
+	ImportBackup(ctx context.Context, in *ImportBackupRequest, opts ...grpc.CallOption) (*EmptyMessage, error)
 }
 
 type openAbyssClient struct {
@@ -165,6 +166,15 @@ func (c *openAbyssClient) ExportBackup(ctx context.Context, in *BackupEntryReque
 	return out, nil
 }
 
+func (c *openAbyssClient) ImportBackup(ctx context.Context, in *ImportBackupRequest, opts ...grpc.CallOption) (*EmptyMessage, error) {
+	out := new(EmptyMessage)
+	err := c.cc.Invoke(ctx, "/server.OpenAbyss/ImportBackup", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OpenAbyssServer is the server API for OpenAbyss service.
 // All implementations must embed UnimplementedOpenAbyssServer
 // for forward compatibility
@@ -189,6 +199,7 @@ type OpenAbyssServer interface {
 	SetBackupManagerConfig(context.Context, *BackupManagerStatus) (*BackupManagerStatus, error)
 	DeleteBackup(context.Context, *BackupEntryRequest) (*BackupEntry, error)
 	ExportBackup(context.Context, *BackupEntryRequest) (*ExportedBackupResponse, error)
+	ImportBackup(context.Context, *ImportBackupRequest) (*EmptyMessage, error)
 	mustEmbedUnimplementedOpenAbyssServer()
 }
 
@@ -234,6 +245,9 @@ func (UnimplementedOpenAbyssServer) DeleteBackup(context.Context, *BackupEntryRe
 }
 func (UnimplementedOpenAbyssServer) ExportBackup(context.Context, *BackupEntryRequest) (*ExportedBackupResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ExportBackup not implemented")
+}
+func (UnimplementedOpenAbyssServer) ImportBackup(context.Context, *ImportBackupRequest) (*EmptyMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ImportBackup not implemented")
 }
 func (UnimplementedOpenAbyssServer) mustEmbedUnimplementedOpenAbyssServer() {}
 
@@ -482,6 +496,24 @@ func _OpenAbyss_ExportBackup_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OpenAbyss_ImportBackup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImportBackupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpenAbyssServer).ImportBackup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/server.OpenAbyss/ImportBackup",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpenAbyssServer).ImportBackup(ctx, req.(*ImportBackupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // OpenAbyss_ServiceDesc is the grpc.ServiceDesc for OpenAbyss service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -540,6 +572,10 @@ var OpenAbyss_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ExportBackup",
 			Handler:    _OpenAbyss_ExportBackup_Handler,
+		},
+		{
+			MethodName: "ImportBackup",
+			Handler:    _OpenAbyss_ImportBackup_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

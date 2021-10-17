@@ -33,6 +33,7 @@ type Arguments struct {
 	SetBackupFrequency     time.Duration
 	RemoveBackup           string
 	ExportBackup           string
+	ImportBackup           string
 
 	// REMOVE/FORCE
 	RemoveFile bool
@@ -82,6 +83,7 @@ func ParseArguments() Arguments {
 	var flagBackupFrequency = flag.Duration("set-backup-frequency", 0, "Sets the backup frequency of the Backup Manager")
 	var flagRemoveBackup = flag.String("remove-backup", "", "Removes stored backup from the server")
 	var flagExportBackup = flag.String("export-backup", "", "Exports stored backup from the server to given filepath")
+	var flagImportBackup = flag.String("import-backup", "", "Imported given backup path to the server")
 
 	// REMOVE
 	var flagRemoveFile = flag.Bool("remove", false, "Removes internal entry")
@@ -121,6 +123,7 @@ func ParseArguments() Arguments {
 		SetBackupFrequency:     *flagBackupFrequency,
 		RemoveBackup:           *flagRemoveBackup,
 		ExportBackup:           *flagExportBackup,
+		ImportBackup:           *flagImportBackup,
 
 		// REMOVE/FORCE
 		RemoveFile: *flagRemoveFile,

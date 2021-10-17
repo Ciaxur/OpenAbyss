@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"io/ioutil"
 	"log"
 	pb "openabyss/proto/server"
 	"openabyss/server/configuration"
 	"openabyss/server/storage"
+	"openabyss/utils"
 	"os"
 	"path"
 	"path/filepath"
@@ -179,4 +181,32 @@ func (s openabyss_server) ExportBackup(ctx context.Context, in *pb.BackupEntryRe
 		CreatedUnixTimestamp: uint64(stat.ModTime().UnixMilli()),
 		FileData:             fileData,
 	}, nil
+}
+
+// Imports given backup to server backups
+func (s openabyss_server) ImportBackup(ctx context.Context, in *pb.ImportBackupRequest) (*pb.EmptyMessage, error) {
+	log.Printf("[rpc_import_backup]: Attempting to import '%s'...\n", in.FileName)
+
+	// Construct path to import to
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatalln("could not get cwd", err)
+	}
+	backup_dir := path.Join(wd, storage.InternalStoragePath, storage.BackupStoragePath)
+	backup_path := path.Join(backup_dir, in.FileName)
+
+	// Verify no duplicates
+	if utils.FileExists(backup_path) {
+		log.Printf("[rpc_import_backup]: Duplicate backup found '%s': %v\n", backup_path, err)
+		return &pb.EmptyMessage{}, fmt.Errorf("duplicate backup already exists '%s'", in.FileName)
+	}
+
+	// Store Backup
+	if err := ioutil.WriteFile(backup_path, in.FileData, 0664); err != nil {
+		log.Printf("[rpc_import_backup]: Failed to write imported data to '%s': %v\n", backup_path, err)
+		return &pb.EmptyMessage{}, fmt.Errorf("failed to import '%s'", in.FileName)
+	}
+
+	log.Println("[rpc_import_backup]: Successfully imported ", backup_path)
+	return &pb.EmptyMessage{}, nil
 }

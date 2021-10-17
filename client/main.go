@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"time"
 
@@ -374,6 +375,22 @@ func main() {
 			} else {
 				log.Printf("Successfuly export '%s' -> '%s'\n", resp.FileName, args.FilePath)
 			}
+		}
+	} else if len(args.ImportBackup) > 0 {
+		// Read in file import
+		fileBuffer, err := os.ReadFile(args.ImportBackup)
+		if err != nil {
+			log.Fatalln("Error reading in file:", err)
+		}
+
+		// Issue import request
+		if _, err := client.ImportBackup(ctx, &pb.ImportBackupRequest{
+			FileName: filepath.Base(args.ImportBackup),
+			FileData: fileBuffer,
+		}); err != nil {
+			log.Fatalln("Failed to import backup:", err)
+		} else {
+			log.Printf("Successfuly imported '%s'!\n", args.ImportBackup)
 		}
 	}
 }

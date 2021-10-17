@@ -30,6 +30,7 @@ service OpenAbyss {
   rpc SetBackupManagerConfig(BackupManagerStatus) returns (BackupManagerStatus) {}
   rpc DeleteBackup(BackupEntryRequest) returns (BackupEntry) {}
   rpc ExportBackup(BackupEntryRequest) returns (ExportedBackupResponse) {}
+  rpc ImportBackup(ImportBackupRequest) returns (EmptyMessage) {}
 }
 
 // ENCRYPT/DECRYPT
@@ -126,6 +127,11 @@ message ExportedBackupResponse {
   string      FileName = 1;
   uint64      CreatedUnixTimestamp = 2;
   bytes       FileData = 3;
+}
+
+message ImportBackupRequest {
+  string      FileName = 1;
+  bytes       FileData = 2;
 }
 
 // MISC
