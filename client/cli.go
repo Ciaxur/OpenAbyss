@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"time"
 )
 
 type Arguments struct {
@@ -21,6 +22,19 @@ type Arguments struct {
 	// PATH
 	ListPath      bool
 	RecursivePath bool
+
+	// BACKUP
+	ListBackups            bool
+	InvokeBackup           bool
+	BackupIndex            int64
+	GetBackupManagerStatus bool
+	ToggleBackupManager    bool // Toggle On/Off Backup Manager
+	SetBackupRetention     time.Duration
+	SetBackupFrequency     time.Duration
+	RemoveBackup           string
+	ExportBackup           string
+	ImportBackup           string
+	RestoreFromBackup      string
 
 	// REMOVE/FORCE
 	RemoveFile bool
@@ -59,6 +73,20 @@ func ParseArguments() Arguments {
 	flag.BoolVar(flagListPath, "l", false, "List an internal path given by the 'storage-path' argument")
 	var flagRecursive = flag.Bool("recursive", false, "Enabled recursive path listing")
 
+	// BACKUP
+	var flagListBackups = flag.Bool("list-backups", false, "Lists backed up internal storage")
+	var flagBackupIndex = flag.Int64("backup-index", -1, "Index of the stored backup")
+	flag.Int64Var(flagBackupIndex, "b", -1, "Index of the stored backup")
+	var flagInvokeBackup = flag.Bool("invoke-backup", false, "Creates a new backup of the internal storage")
+	var flagGetBackupManagerStatus = flag.Bool("get-backup-manager-status", false, "Returns the status of the Backup Manager on the server")
+	var flagToggleBackupManager = flag.Bool("toggle-backup-manager", false, "Toggles On/Off Backup Manager on the server")
+	var flagBackupRetention = flag.Duration("set-backup-retention", 0, "Sets the backup retention period of the Backup Manager")
+	var flagBackupFrequency = flag.Duration("set-backup-frequency", 0, "Sets the backup frequency of the Backup Manager")
+	var flagRemoveBackup = flag.String("remove-backup", "", "Removes stored backup from the server")
+	var flagExportBackup = flag.String("export-backup", "", "Exports stored backup from the server to given filepath")
+	var flagImportBackup = flag.String("import-backup", "", "Imported given backup path to the server")
+	var flagRestoreFromBackup = flag.String("restore-backup", "", "Restores server storage from given backup name")
+
 	// REMOVE
 	var flagRemoveFile = flag.Bool("remove", false, "Removes internal entry")
 	flag.BoolVar(flagRemoveFile, "r", false, "Removes internal entry")
@@ -70,19 +98,41 @@ func ParseArguments() Arguments {
 
 	flag.Parse()
 	return Arguments{
-		GetKeyNames:      *flagGetKeyNames,
-		GetKeys:          *flagGetKeys,
-		GenerateKeyPair:  *flagGenerateKeyPair,
-		FilePath:         *flagFilePath,
+		// KEYS/ENTRIES
+		GetKeyNames:     *flagGetKeyNames,
+		GetKeys:         *flagGetKeys,
+		GenerateKeyPair: *flagGenerateKeyPair,
+		FilePath:        *flagFilePath,
+
+		// ENCRYPT/DECRYPT
 		EncryptFile:      *flagEncryptFile,
 		DecryptFile:      *flagDecryptFile,
 		FilePacketOutput: *flagFilePacketOutput,
 		StoragePath:      *flagStoragePath,
 		KeyId:            *flagKeyId,
-		ListPath:         *flagListPath,
-		RecursivePath:    *flagRecursive,
-		RemoveFile:       *flagRemoveFile,
-		Force:            *flagForce,
-		Verbose:          *flagVerbose,
+
+		// PATH
+		ListPath:      *flagListPath,
+		RecursivePath: *flagRecursive,
+
+		// BACKUP
+		ListBackups:            *flagListBackups,
+		InvokeBackup:           *flagInvokeBackup,
+		BackupIndex:            *flagBackupIndex,
+		GetBackupManagerStatus: *flagGetBackupManagerStatus,
+		ToggleBackupManager:    *flagToggleBackupManager,
+		SetBackupRetention:     *flagBackupRetention,
+		SetBackupFrequency:     *flagBackupFrequency,
+		RemoveBackup:           *flagRemoveBackup,
+		ExportBackup:           *flagExportBackup,
+		ImportBackup:           *flagImportBackup,
+		RestoreFromBackup:      *flagRestoreFromBackup,
+
+		// REMOVE/FORCE
+		RemoveFile: *flagRemoveFile,
+		Force:      *flagForce,
+
+		// MISC.
+		Verbose: *flagVerbose,
 	}
 }

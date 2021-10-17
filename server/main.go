@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	pb "openabyss/proto/server"
+	"openabyss/server/configuration"
 	"openabyss/server/storage"
 	"os"
 	"os/signal"
@@ -22,6 +23,9 @@ func onSignalChannel_cleanup(sigChan chan os.Signal) {
 	if err := storage.Close(); err != nil {
 		log.Println("[Clean Up]: Error closing up Internal Storage:", err)
 	}
+
+	log.Println("[Clean Up]: Closing up Server Configuration")
+	configuration.Close()
 
 	os.Exit(0)
 }

@@ -22,6 +22,16 @@ service OpenAbyss {
   
   // Lists stored path contents
   rpc ListPathContents(ListPathContentRequest) returns (PathResponse) {}
+  rpc ListInternalBackups(EmptyMessage) returns (BackupEntries) {}
+  rpc InvokeNewStorageBackup(EmptyMessage) returns (BackupEntry) {}
+
+  // Backup Manager Requests
+  rpc GetBackupManagerConfig(EmptyMessage) returns (BackupManagerStatus) {}
+  rpc SetBackupManagerConfig(BackupManagerStatus) returns (BackupManagerStatus) {}
+  rpc DeleteBackup(BackupEntryRequest) returns (BackupEntry) {}
+  rpc ExportBackup(BackupEntryRequest) returns (ExportedBackupResponse) {}
+  rpc ImportBackup(ImportBackupRequest) returns (EmptyMessage) {}
+  rpc RestoreFromBackup(RestoreFromBackupRequest) returns (BackupEntry) {}
 }
 
 // ENCRYPT/DECRYPT
@@ -89,6 +99,44 @@ message ContentType {
 
 message PathResponse {
   repeated ContentType Content = 1;
+}
+
+// BACKUPS
+message BackupEntry {
+  string      FileName = 1;
+  uint64      CreatedUnixTimestamp = 2;
+  uint64      ExpiresInUnixTimestamp = 3;
+}
+
+message BackupEntries {
+  repeated BackupEntry Backups = 1;
+}
+
+message BackupManagerStatus {
+  bool    IsEnabled = 1;
+  uint64  LastBackupUnixTimestamp = 2;
+  uint64  TotalBackups = 3;
+  uint64  RetentionPeriod = 4;
+  uint64  BackupFrequency = 5;
+}
+
+message BackupEntryRequest {
+  string BackupFileName = 1;
+}
+
+message ExportedBackupResponse {
+  string      FileName = 1;
+  uint64      CreatedUnixTimestamp = 2;
+  bytes       FileData = 3;
+}
+
+message ImportBackupRequest {
+  string      FileName = 1;
+  bytes       FileData = 2;
+}
+
+message RestoreFromBackupRequest {
+  string      FileName = 1;
 }
 
 // MISC

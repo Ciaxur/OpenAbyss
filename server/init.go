@@ -17,6 +17,9 @@ func Init() {
 	// Load Configuration
 	configuration.Init()
 
+	// Init Backup Manager
+	go storage.Init_Backup_Manager()
+
 	// Setup internal configuraiton
 	port = configuration.LoadedConfig.GrpcPort
 	host = configuration.LoadedConfig.GrpcHost

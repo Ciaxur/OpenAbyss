@@ -10,8 +10,10 @@ var (
 		StorageMap:               make(map[string]FileStorageMap),
 		Storage:                  make(map[string]FileStorage),
 	}
+	LastBackup          int64  = time.Now().UnixMilli()
 	InternalStoragePath string = ".storage"
 	InternalConfigPath  string
+	BackupStoragePath   string = "backups" // InternalStoragePath/BackupStoragePath
 )
 
 // File Type "Enum" Mapping

@@ -49,6 +49,7 @@ func Init() {
 
 // Closes and cleans up internal data
 func Close() error {
+	log.Println("[storage]: Closing internal storage, writing to file...")
 	_, err := Internal.WriteToFile()
 	return err
 }
