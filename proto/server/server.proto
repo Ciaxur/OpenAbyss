@@ -28,6 +28,7 @@ service OpenAbyss {
   // Backup Manager Requests
   rpc GetBackupManagerConfig(EmptyMessage) returns (BackupManagerStatus) {}
   rpc SetBackupManagerConfig(BackupManagerStatus) returns (BackupManagerStatus) {}
+  rpc DeleteBackup(BackupDeleteRequest) returns (BackupEntry) {}
 }
 
 // ENCRYPT/DECRYPT
@@ -114,6 +115,10 @@ message BackupManagerStatus {
   uint64  TotalBackups = 3;
   uint64  RetentionPeriod = 4;
   uint64  BackupFrequency = 5;
+}
+
+message BackupDeleteRequest {
+  string BackupFileName = 1;
 }
 
 // MISC

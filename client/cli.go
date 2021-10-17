@@ -31,6 +31,7 @@ type Arguments struct {
 	ToggleBackupManager    bool // Toggle On/Off Backup Manager
 	SetBackupRetention     time.Duration
 	SetBackupFrequency     time.Duration
+	RemoveBackup           string
 
 	// REMOVE/FORCE
 	RemoveFile bool
@@ -78,6 +79,7 @@ func ParseArguments() Arguments {
 	var flagToggleBackupManager = flag.Bool("toggle-backup-manager", false, "Toggles On/Off Backup Manager on the server")
 	var flagBackupRetention = flag.Duration("set-backup-retention", 0, "Sets the backup retention period of the Backup Manager")
 	var flagBackupFrequency = flag.Duration("set-backup-frequency", 0, "Sets the backup frequency of the Backup Manager")
+	var flagRemoveBackup = flag.String("remove-backup", "", "Removes stored backup from the server")
 
 	// REMOVE
 	var flagRemoveFile = flag.Bool("remove", false, "Removes internal entry")
@@ -115,6 +117,7 @@ func ParseArguments() Arguments {
 		ToggleBackupManager:    *flagToggleBackupManager,
 		SetBackupRetention:     *flagBackupRetention,
 		SetBackupFrequency:     *flagBackupFrequency,
+		RemoveBackup:           *flagRemoveBackup,
 
 		// REMOVE/FORCE
 		RemoveFile: *flagRemoveFile,

@@ -347,5 +347,14 @@ func main() {
 		} else {
 			log.Printf("Successfuly updated Backup Frequency to: %v\n", args.SetBackupFrequency.String())
 		}
+	} else if len(args.RemoveBackup) > 0 {
+		if resp, err := client.DeleteBackup(ctx, &pb.BackupDeleteRequest{
+			BackupFileName: args.RemoveBackup,
+		}); err != nil {
+			utils.HandleErr(err, "failed to remove backup")
+			os.Exit(1)
+		} else {
+			log.Printf("Successfully removed \"%s\"\n", resp.FileName)
+		}
 	}
 }

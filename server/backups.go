@@ -123,3 +123,31 @@ func (s openabyss_server) SetBackupManagerConfig(ctx context.Context, in *pb.Bac
 
 	return in, nil
 }
+
+// Deletes Stored backup based on Index
+func (s openabyss_server) DeleteBackup(ctx context.Context, in *pb.BackupDeleteRequest) (*pb.BackupEntry, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatalln("could not get cwd", err)
+	}
+	backup_dir := path.Join(wd, storage.InternalStoragePath, storage.BackupStoragePath)
+	backup_path := path.Join(backup_dir, in.BackupFileName)
+	stat, err := os.Stat(backup_path)
+	if err != nil {
+		log.Println("[rpc_delete_backup]: Stat failed: ", err)
+		return nil, fmt.Errorf("given backup file '%s' not found", in.BackupFileName)
+	}
+
+	// Attempt to Remove file
+	if err := os.Remove(path.Join(backup_dir, in.BackupFileName)); err != nil {
+		log.Println("[rpc_delete_backup]: File removal failed: ", err)
+		return nil, fmt.Errorf("failed to remove '%s'", in.BackupFileName)
+	}
+
+	log.Println("[rpc_delete_backup]: Successfuly removed backup ", in.BackupFileName)
+	return &pb.BackupEntry{
+		FileName:               stat.Name(),
+		CreatedUnixTimestamp:   uint64(stat.ModTime().UnixMilli()),
+		ExpiresInUnixTimestamp: 0,
+	}, nil
+}
