@@ -2,6 +2,7 @@ package utils
 
 import (
 	"log"
+	"openabyss/client/console"
 	"os"
 	"regexp"
 )
@@ -21,9 +22,9 @@ func HandleErr(err error, msg string) bool {
 		}
 		errDescIdx := regexp.MustCompile(`(?:desc = )\w.*$`).FindStringIndex(err.Error())
 		if len(errDescIdx) > 0 {
-			log.Println(msg+":", err.Error()[errDescIdx[0]+7:errDescIdx[1]])
+			console.Error.Println(msg+":", err.Error()[errDescIdx[0]+7:errDescIdx[1]])
 		} else {
-			log.Println(msg+": ", err)
+			console.Error.Println(msg+": ", err)
 		}
 		return false
 	}
