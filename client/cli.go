@@ -1,138 +1,109 @@
 package main
 
 import (
-	"flag"
 	"time"
+
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 type Arguments struct {
 	// KEYS/ENTRIES
-	GetKeyNames     bool
-	GetKeys         bool
-	GenerateKeyPair string
-	FilePath        string
+	GetKeyNames        *bool
+	GetKeys            *bool
+	GenerateKeyPair    *string
+	KeyPairDescription *string
+	KeyPairAlgo        *string
+	FilePath           *string
 
 	// ENCRYPT/DECRYPT
-	EncryptFile      bool
-	DecryptFile      bool
-	FilePacketOutput string
-	StoragePath      string
-	KeyId            string
+	EncryptFile      *string
+	DecryptFile      *string
+	FilePacketOutput *string
+	StoragePath      *string
+	KeyId            *string
 
 	// PATH
-	ListPath      bool
-	RecursivePath bool
+	ListPath      *bool
+	RecursivePath *bool
 
 	// BACKUP
-	ListBackups            bool
-	InvokeBackup           bool
-	BackupIndex            int64
-	GetBackupManagerStatus bool
-	ToggleBackupManager    bool // Toggle On/Off Backup Manager
-	SetBackupRetention     time.Duration
-	SetBackupFrequency     time.Duration
-	RemoveBackup           string
-	ExportBackup           string
-	ImportBackup           string
-	RestoreFromBackup      string
+	ListBackups            *bool
+	InvokeBackup           *bool
+	BackupIndex            *int64
+	GetBackupManagerStatus *bool
+	ToggleBackupManager    *bool // Toggle On/Off Backup Manager
+	SetBackupRetention     *time.Duration
+	SetBackupFrequency     *time.Duration
+	RemoveBackup           *string
+	ExportBackup           *string
+	ImportBackup           *string
+	RestoreFromBackup      *string
 
 	// REMOVE/FORCE
-	RemoveFile bool
-	Force      bool // Used to force overwrite
+	RemoveFile *string
+	Force      *bool // Used to force overwrite
 
 	// MISC.
-	Verbose bool
+	Verbose *bool
 }
 
-func ParseArguments() Arguments {
-	// KEYS/ENTRIES
-	var flagGetKeyNames = flag.Bool("list-key-names", false, "Retrieves available key names")
-	var flagGetKeys = flag.Bool("list-keys", false, "Retrieves available keys with their name and public key")
-	var flagGenerateKeyPair = flag.String("generate-keypair", "", "Generate a keypair given the key's name")
-	var flagFilePath = flag.String("filepath", "", "Path to file")
-	flag.StringVar(flagFilePath, "f", "", "Path to file")
+func ParseArguments() (string, *Arguments) {
+	args := Arguments{}
+
+	// GENREAL
+	args.FilePath = kingpin.Flag("filepath", "Path to file").Default("").String()
+
+	// LIST
+	listCmd := kingpin.Command("list", "List server internal data")
+	args.GetKeyNames = listCmd.Flag("key-names", "Retrieves available key names").Bool()
+	args.GetKeys = listCmd.Flag("keys", "Retrieves available keys with their name and public key").Bool()
+	args.ListPath = listCmd.Flag("internal-storage", "List an internal path given by the 'storage-path' argument | Root Storage by default").Bool()
+
+	// GENERATE
+	generateCmd := kingpin.Command("generate", "Generate Keypair given key metadata")
+	args.GenerateKeyPair = generateCmd.Flag("name", "Generated key's name").Required().String()
+	args.KeyPairDescription = generateCmd.Flag("description", "Generated key's description").Default("").String()
+	args.KeyPairAlgo = generateCmd.Flag("algorithm", "Generated key's algorithm").Default("rsa").String()
 
 	// ENCRYPT/DECRYPT
-	var flagEncryptFile = flag.Bool("encrypt", false, "Encrypts given path, storing it in given storage path")
-	flag.BoolVar(flagEncryptFile, "e", false, "Encrypts given path, storing it in given storage path")
+	encryptCmd := kingpin.Command("encrypt", "Encrypts given path, storing it in given storage path")
+	args.EncryptFile = encryptCmd.Flag("path", "Path to the file to encrypt").Required().String()
 
-	var flagDecryptFile = flag.Bool("decrypt", false, "Decrypts file from given path, responding with file data")
-	flag.BoolVar(flagDecryptFile, "d", false, "Decrypts file from given path, responding with file data")
+	decryptCmd := kingpin.Command("decrypt", "Decrypts file from given path, responding with file data")
+	args.DecryptFile = decryptCmd.Flag("path", "Path to the file to decrypt on server").Required().String()
 
-	var flagFilePacketOutput = flag.String("file-packet-out", "", "Destination for incoming file packet data. Default: Outputs to stdout")
-	flag.StringVar(flagFilePacketOutput, "o", "", "Destination for incoming file packet data. Default: Outputs to stdout")
+	args.FilePacketOutput = kingpin.Flag("file-packet-out", "Destination for incoming file packet data. Default: Outputs to stdout").Default("").String()
 
-	var flagStoragePath = flag.String("storage-path", "/", "Internal path of where to store data")
-	flag.StringVar(flagStoragePath, "s", "/", "Internal path of where to store data")
-
-	var flagKeyId = flag.String("key-id", "", "Key's id/name used to encrypt")
-	flag.StringVar(flagKeyId, "k", "", "Key's id/name used to encrypt")
+	args.StoragePath = kingpin.Flag("storage-path", "Internal path to data").Default("/").String()
+	args.KeyId = kingpin.Flag("key-id", "Key's id/name used to encrypt").Default("").String()
 
 	// PATH
-	var flagListPath = flag.Bool("list-path", false, "List an internal path given by the 'storage-path' argument | Root Storage by default")
-	flag.BoolVar(flagListPath, "l", false, "List an internal path given by the 'storage-path' argument")
-	var flagRecursive = flag.Bool("recursive", false, "Enabled recursive path listing")
+	args.RecursivePath = kingpin.Flag("recursive", "Enabled recursive path listing").Bool()
 
 	// BACKUP
-	var flagListBackups = flag.Bool("list-backups", false, "Lists backed up internal storage")
-	var flagBackupIndex = flag.Int64("backup-index", -1, "Index of the stored backup")
-	flag.Int64Var(flagBackupIndex, "b", -1, "Index of the stored backup")
-	var flagInvokeBackup = flag.Bool("invoke-backup", false, "Creates a new backup of the internal storage")
-	var flagGetBackupManagerStatus = flag.Bool("get-backup-manager-status", false, "Returns the status of the Backup Manager on the server")
-	var flagToggleBackupManager = flag.Bool("toggle-backup-manager", false, "Toggles On/Off Backup Manager on the server")
-	var flagBackupRetention = flag.Duration("set-backup-retention", 0, "Sets the backup retention period of the Backup Manager")
-	var flagBackupFrequency = flag.Duration("set-backup-frequency", 0, "Sets the backup frequency of the Backup Manager")
-	var flagRemoveBackup = flag.String("remove-backup", "", "Removes stored backup from the server")
-	var flagExportBackup = flag.String("export-backup", "", "Exports stored backup from the server to given filepath")
-	var flagImportBackup = flag.String("import-backup", "", "Imported given backup path to the server")
-	var flagRestoreFromBackup = flag.String("restore-backup", "", "Restores server storage from given backup name")
+	backupCmd := kingpin.Command("backup", "Backup Commands")
+	args.ListBackups = backupCmd.Flag("list", "Lists backed up internal storage").Bool()
+	args.BackupIndex = kingpin.Flag("index", "Index of the stored backup").Default("-1").Int64()
+	args.InvokeBackup = kingpin.Flag("invoke-backup", "Creates a new backup of the internal storage").Bool()
+	args.GetBackupManagerStatus = kingpin.Flag("manager-status", "Returns the status of the Backup Manager on the server").Bool()
+	args.ToggleBackupManager = kingpin.Flag("toggle-backup-manager", "Toggles On/Off Backup Manager on the server").Bool()
+	args.SetBackupRetention = kingpin.Flag("set-backup-retention", "Sets the backup retention period of the Backup Manager").Default("0").Duration()
+	args.SetBackupFrequency = kingpin.Flag("set-backup-frequency", "Sets the backup frequency of the Backup Manager").Default("0").Duration()
+	args.RemoveBackup = kingpin.Flag("remove", "Removes stored backup from the server").Default("").String()
+	args.ExportBackup = kingpin.Flag("export", "Exports stored backup from the server to given filepath").Default("").String()
+	args.ImportBackup = kingpin.Flag("import", "Imported given backup path to the server").Default("").String()
+	args.RestoreFromBackup = kingpin.Flag("restore", "Restores server storage from given backup name").Default("").String()
 
 	// REMOVE
-	var flagRemoveFile = flag.Bool("remove", false, "Removes internal entry")
-	flag.BoolVar(flagRemoveFile, "r", false, "Removes internal entry")
+	removeCmd := kingpin.Command("remove", "Remove an internal entry")
+	args.RemoveFile = removeCmd.Flag("path", "Internal file to remove").Default("").String()
 
-	// FORCE (overwrite)
-	var flagForce = flag.Bool("force", false, "Forces supplied action")
+	// // FORCE (overwrite)
+	args.Force = kingpin.Flag("force", "Forces supplied action").Bool()
 
-	var flagVerbose = flag.Bool("verbose", false, "Enables verbose printing")
+	// OTHER
+	args.Verbose = kingpin.Flag("verbose", "Enables verbose printing").Bool()
 
-	flag.Parse()
-	return Arguments{
-		// KEYS/ENTRIES
-		GetKeyNames:     *flagGetKeyNames,
-		GetKeys:         *flagGetKeys,
-		GenerateKeyPair: *flagGenerateKeyPair,
-		FilePath:        *flagFilePath,
-
-		// ENCRYPT/DECRYPT
-		EncryptFile:      *flagEncryptFile,
-		DecryptFile:      *flagDecryptFile,
-		FilePacketOutput: *flagFilePacketOutput,
-		StoragePath:      *flagStoragePath,
-		KeyId:            *flagKeyId,
-
-		// PATH
-		ListPath:      *flagListPath,
-		RecursivePath: *flagRecursive,
-
-		// BACKUP
-		ListBackups:            *flagListBackups,
-		InvokeBackup:           *flagInvokeBackup,
-		BackupIndex:            *flagBackupIndex,
-		GetBackupManagerStatus: *flagGetBackupManagerStatus,
-		ToggleBackupManager:    *flagToggleBackupManager,
-		SetBackupRetention:     *flagBackupRetention,
-		SetBackupFrequency:     *flagBackupFrequency,
-		RemoveBackup:           *flagRemoveBackup,
-		ExportBackup:           *flagExportBackup,
-		ImportBackup:           *flagImportBackup,
-		RestoreFromBackup:      *flagRestoreFromBackup,
-
-		// REMOVE/FORCE
-		RemoveFile: *flagRemoveFile,
-		Force:      *flagForce,
-
-		// MISC.
-		Verbose: *flagVerbose,
-	}
+	subCmd := kingpin.Parse()
+	return subCmd, &args
 }

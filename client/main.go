@@ -25,9 +25,9 @@ import (
 
 func main() {
 	// Init
-	args := ParseArguments()
+	subcmd, args := ParseArguments()
 
-	if args.Verbose {
+	if *args.Verbose {
 		configuration.EnableVerbose()
 	}
 
@@ -68,7 +68,7 @@ func main() {
 	defer cancel()
 
 	// Client Reqeust
-	if args.GetKeys {
+	if *args.GetKeys {
 		resp, err := client.GetKeys(ctx, &pb.EmptyMessage{})
 		utils.HandleErr(err, "could no get keys")
 
@@ -88,7 +88,7 @@ func main() {
 				console.Log.Println(string(entry.PublicKeyName))
 			}
 		}
-	} else if args.GetKeyNames {
+	} else if *args.GetKeyNames {
 		resp, err := client.GetKeyNames(ctx, &pb.EmptyMessage{})
 		utils.HandleErr(err, "could no get names")
 		if err == nil {
@@ -98,30 +98,32 @@ func main() {
 				console.Log.Println(entryKey)
 			}
 		}
-	} else if len(args.GenerateKeyPair) > 0 {
+	} else if len(*args.GenerateKeyPair) > 0 {
 		resp, err := client.GenerateKeyPair(ctx, &pb.GenerateEntityRequest{
-			Name: args.GenerateKeyPair,
+			Name:        *args.GenerateKeyPair,
+			Description: *args.KeyPairDescription,
+			Algorithm:   "rsa", // TODO: Change when various algos allowed
 		})
 		utils.HandleErr(err, "could not generate keypair for given name")
 
 		if err == nil {
 			console.Heading.Printf("Generated keypair for '%s':\n", color.WhiteString(resp.Name))
 		}
-	} else if args.EncryptFile {
+	} else if subcmd == "encrypt" {
 		// Check: Required File Path
-		if len(args.FilePath) == 0 {
+		if len(*args.EncryptFile) == 0 {
 			console.Fatalln("no given required file to encrypt. filepath argument is required")
 		}
 
-		if len(args.StoragePath) == 0 { // Validate acompaning output destination
+		if len(*args.StoragePath) == 0 { // Validate acompaning output destination
 			console.Fatalln("no given required storage path argument")
-		} else if !utils.PathExists(args.FilePath) { // Validate Path
-			console.Fatalf("given path '%s' does not exist\n", args.FilePath)
-		} else if len(args.KeyId) == 0 { // No given key to encrypt with
+		} else if !utils.PathExists(*args.EncryptFile) { // Validate Path
+			console.Fatalf("given path '%s' does not exist\n", *args.EncryptFile)
+		} else if len(*args.KeyId) == 0 { // No given key to encrypt with
 			console.Fatalln("no given required keyId to use")
 		} else { // Issue request
 			// Read in the file
-			if fileBytes, err := ioutil.ReadFile(args.FilePath); err != nil {
+			if fileBytes, err := ioutil.ReadFile(*args.EncryptFile); err != nil {
 				console.Fatalln("could not read in file:", err)
 			} else {
 
@@ -134,11 +136,11 @@ func main() {
 				resp, err := client.EncryptFile(ctx, &pb.FilePacket{
 					FileBytes:   compBuffer.Bytes(),
 					SizeInBytes: int64(compBuffer.Len()),
-					FileName:    path.Base(args.FilePath),
+					FileName:    path.Base(*args.EncryptFile),
 					Options: &pb.FileOptions{
-						StoragePath: args.StoragePath,
-						KeyName:     args.KeyId,
-						Overwrite:   args.Force,
+						StoragePath: *args.StoragePath,
+						KeyName:     *args.KeyId,
+						Overwrite:   *args.Force,
 					},
 				})
 				if err != nil {
@@ -152,25 +154,25 @@ func main() {
 
 				} else {
 					storedFilePath := path.Join(resp.FileStoragePath, resp.FileId)
-					console.Info.Printf("Encrypted '%s' -> '%s' successfuly!\n", args.FilePath, storedFilePath)
+					console.Info.Printf("Encrypted '%s' -> '%s' successfuly!\n", *args.EncryptFile, storedFilePath)
 				}
 			}
 		}
-	} else if args.DecryptFile {
+	} else if subcmd == "decrypt" {
 		// Check: Required Key-Id Argument
-		if len(args.KeyId) == 0 {
+		if len(*args.KeyId) == 0 {
 			console.Fatalln("KeyId is required to decrypt the file")
 		}
 
 		// Check: Required Internal File path
-		if len(args.FilePath) == 0 {
-			console.Fatalln("FilePath is required to decrypt the file")
+		if len(*args.DecryptFile) == 0 {
+			console.Fatalln("DecryptFile is required to decrypt the file")
 		}
 
 		// Issue request
 		resp, err := client.DecryptFile(ctx, &pb.DecryptRequest{
-			FilePath:       args.FilePath,
-			PrivateKeyName: []byte(args.KeyId),
+			FilePath:       *args.DecryptFile,
+			PrivateKeyName: []byte(*args.KeyId),
 		})
 
 		// Handle resposne
@@ -186,17 +188,17 @@ func main() {
 			gReader.Read(fileBuffer)
 
 			// Output to a file
-			if len(args.FilePacketOutput) > 0 {
+			if len(*args.FilePacketOutput) > 0 {
 				console.Log.Printf("File Name: %s\n", resp.FileName)
 				console.Log.Printf("File Size in Bytes: %d Bytes\n", resp.SizeInBytes)
 
-				if fd, err := os.Create(args.FilePacketOutput); err != nil {
+				if fd, err := os.Create(*args.FilePacketOutput); err != nil {
 					utils.HandleErr(err, "failed to create file")
 				} else {
 					fd.Write(fileBuffer)
 					fd.Close()
 
-					console.Log.Println("Data saved to:", args.FilePacketOutput)
+					console.Log.Println("Data saved to:", *args.FilePacketOutput)
 				}
 
 			} else { // Output to stdout
@@ -204,16 +206,16 @@ func main() {
 			}
 
 		}
-	} else if args.RemoveFile {
+	} else if subcmd == "remove" {
 		// Check: Required argument filepath
-		if len(args.FilePath) == 0 {
-			console.Fatalln("FilePath is required to remove it")
+		if len(*args.RemoveFile) == 0 {
+			console.Fatalln("Path is required to remove it")
 		}
 
 		// Issue request
 		_, err := client.ModifyEntity(ctx, &pb.EntityMod{
-			FilePath: args.FilePath,
-			Remove:   args.RemoveFile,
+			FilePath: *args.RemoveFile,
+			Remove:   true,
 		})
 
 		// Check status
@@ -221,17 +223,17 @@ func main() {
 			utils.HandleErr(err, "failed to modify entity")
 			os.Exit(1)
 		} else {
-			console.Log.Printf("Successfuly removed '%s'\n", args.FilePath)
+			console.Log.Printf("Successfuly removed '%s'\n", *args.RemoveFile)
 		}
-	} else if args.ListPath {
-		if len(args.StoragePath) == 0 {
+	} else if *args.ListPath {
+		if len(*args.StoragePath) == 0 {
 			console.Fatalln("Storage path argument missing")
 		}
 
 		// Issue request & handle response
 		req := pb.ListPathContentRequest{
-			Path:      args.StoragePath,
-			Recursive: args.RecursivePath,
+			Path:      *args.StoragePath,
+			Recursive: *args.RecursivePath,
 		}
 		if resp, err := client.ListPathContents(ctx, &req); err != nil {
 			utils.HandleErr(err, "list path error")
@@ -249,7 +251,7 @@ func main() {
 				console.Warning.Println("No internal content")
 			}
 		}
-	} else if args.ListBackups {
+	} else if *args.ListBackups {
 		// Issue request & handle response
 		if resp, err := client.ListInternalBackups(ctx, &pb.EmptyMessage{}); err != nil {
 			utils.HandleErr(err, "list backups error")
@@ -270,7 +272,7 @@ func main() {
 				}
 			}
 		}
-	} else if args.InvokeBackup {
+	} else if *args.InvokeBackup {
 		// Issue backup invoke
 		if resp, err := client.InvokeNewStorageBackup(ctx, &pb.EmptyMessage{}); err != nil {
 			utils.HandleErr(err, "invoke new backup error")
@@ -283,7 +285,7 @@ func main() {
 			console.Log.Println("  - Backup Filename: ", resp.FileName)
 			console.Log.Println("  - Backup Expires at: ", expires_at.Local().String())
 		}
-	} else if args.GetBackupManagerStatus {
+	} else if *args.GetBackupManagerStatus {
 		if resp, err := client.GetBackupManagerConfig(ctx, &pb.EmptyMessage{}); err != nil {
 			utils.HandleErr(err, "get backup manager config error")
 			os.Exit(1)
@@ -305,7 +307,7 @@ func main() {
 			console.Log.Printf("- Backup Frequency: %s\n", time.Duration(backup_freq.UnixNano()).String())
 			console.Log.Printf("- Retention Period: %s\n", time.Duration(retention_period.UnixNano()).String())
 		}
-	} else if args.ToggleBackupManager {
+	} else if *args.ToggleBackupManager {
 		// Get current config
 		resp, err := client.GetBackupManagerConfig(ctx, &pb.EmptyMessage{})
 		if err != nil {
@@ -359,53 +361,53 @@ func main() {
 		} else {
 			console.Heading.Printf("Successfuly updated Backup Frequency to: %v\n", color.WhiteString(args.SetBackupFrequency.String()))
 		}
-	} else if len(args.RemoveBackup) > 0 {
+	} else if len(*args.RemoveBackup) > 0 {
 		if resp, err := client.DeleteBackup(ctx, &pb.BackupEntryRequest{
-			BackupFileName: args.RemoveBackup,
+			BackupFileName: *args.RemoveBackup,
 		}); err != nil {
 			utils.HandleErr(err, "failed to remove backup")
 			os.Exit(1)
 		} else {
 			console.Heading.Printf("Successfully removed \"%s\"\n", color.WhiteString(resp.FileName))
 		}
-	} else if len(args.ExportBackup) > 0 {
+	} else if len(*args.ExportBackup) > 0 {
 		// Requires file path to export TO
-		if len(args.FilePath) == 0 {
+		if len(*args.FilePath) == 0 {
 			console.Fatalln("Export Backup requires a filepath to export to!")
 		}
 
 		// Request export
 		if resp, err := client.ExportBackup(ctx, &pb.BackupEntryRequest{
-			BackupFileName: args.ExportBackup,
+			BackupFileName: *args.ExportBackup,
 		}); err != nil {
 			console.Fatalln("Export Backup Error:", err)
 		} else {
 			// Write received file bytes to file
-			if err := ioutil.WriteFile(args.FilePath, resp.FileData, 0664); err != nil {
+			if err := ioutil.WriteFile(*args.FilePath, resp.FileData, 0664); err != nil {
 				console.Fatalln("Error writing received backup to file:", err)
 			} else {
-				console.Heading.Printf("Successfuly export '%s' -> '%s'\n", color.WhiteString(resp.FileName), color.WhiteString(args.FilePath))
+				console.Heading.Printf("Successfuly export '%s' -> '%s'\n", color.WhiteString(resp.FileName), color.WhiteString(*args.FilePath))
 			}
 		}
-	} else if len(args.ImportBackup) > 0 {
+	} else if len(*args.ImportBackup) > 0 {
 		// Read in file import
-		fileBuffer, err := os.ReadFile(args.ImportBackup)
+		fileBuffer, err := os.ReadFile(*args.ImportBackup)
 		if err != nil {
 			console.Fatalln("Error reading in file:", err)
 		}
 
 		// Issue import request
 		if _, err := client.ImportBackup(ctx, &pb.ImportBackupRequest{
-			FileName: filepath.Base(args.ImportBackup),
+			FileName: filepath.Base(*args.ImportBackup),
 			FileData: fileBuffer,
 		}); err != nil {
 			console.Fatalln("Failed to import backup:", err)
 		} else {
-			console.Heading.Printf("Successfuly imported '%s'!\n", color.WhiteString(args.ImportBackup))
+			console.Heading.Printf("Successfuly imported '%s'!\n", color.WhiteString(*args.ImportBackup))
 		}
-	} else if len(args.RestoreFromBackup) > 0 {
+	} else if len(*args.RestoreFromBackup) > 0 {
 		if resp, err := client.RestoreFromBackup(ctx, &pb.RestoreFromBackupRequest{
-			FileName: args.RestoreFromBackup,
+			FileName: *args.RestoreFromBackup,
 		}); err != nil {
 			console.Fatalln("Failed to restore from backup:", err)
 		} else {
@@ -414,5 +416,7 @@ func main() {
 			console.Heading.Printf("Successfully restored from backup. Backup up previous storage'%s'\n", color.WhiteString(resp.FileName))
 			console.Log.Println("  - Expires at: ", expires_at.Local().String())
 		}
+	} else {
+		console.Error.Println("Missing flag!")
 	}
 }

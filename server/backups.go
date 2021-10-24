@@ -227,8 +227,8 @@ func (s openabyss_server) RestoreFromBackup(ctx context.Context, in *pb.RestoreF
 
 	// Verify backup exists
 	if !utils.FileExists(backup_path) {
-		log.Println("[rpc_restore_backup]: Failed to restore, backup '%s' doesn't exist\n", in.FileName)
-		return &pb.BackupEntry{}, fmt.Errorf("backup '%s' doesn't exist\n", in.FileName)
+		log.Printf("[rpc_restore_backup]: Failed to restore, backup '%s' doesn't exist\n", in.FileName)
+		return &pb.BackupEntry{}, fmt.Errorf("backup '%s' doesn't exist", in.FileName)
 	}
 
 	// Invoke Backup

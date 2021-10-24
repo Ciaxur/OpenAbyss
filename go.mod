@@ -3,16 +3,19 @@ module openabyss
 go 1.17
 
 require (
+	github.com/fatih/color v1.13.0
 	github.com/manifoldco/promptui v0.8.0
 	github.com/stretchr/testify v1.7.0
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
+	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 )
 
 require (
+	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
+	github.com/alecthomas/units v0.0.0-20210927113745-59d0afb8317a // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
 	github.com/davecgh/go-spew v1.1.0 // indirect
-	github.com/fatih/color v1.13.0 // indirect
 	github.com/golang/protobuf v1.5.0 // indirect
 	github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a // indirect
 	github.com/lunixbochs/vtclean v0.0.0-20180621232353-2d01aacdc34a // indirect
