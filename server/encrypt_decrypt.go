@@ -97,13 +97,13 @@ func (s openabyss_server) DecryptFile(ctx context.Context, in *pb.DecryptRequest
 	}
 
 	// Adjust root path
-	storagePath := regexp.MustCompile(`^(\.*)/`).ReplaceAllString(in.FilePath, "")
+	storagePath := regexp.MustCompile(`^(\.*)`).ReplaceAllString(in.FilePath, "")
 	log.Printf("[DecryptFile]: storagePath extracted: '%s' -'%s'\n", in.FilePath, storagePath)
 
 	// Obtain from internal storage
 	fsFile, err := storage.Internal.GetFileByPath(storagePath)
 	if err != nil {
-		log.Printf("[DecryptFile]: File '%s' not found\n", in.FilePath)
+		log.Printf("[DecryptFile]: File '%s' not found: %v\n", in.FilePath, err)
 		return &pb.FilePacket{}, errors.New("file '" + storagePath + "' not found")
 	}
 
