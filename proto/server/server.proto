@@ -66,12 +66,18 @@ message EntityMod {
 
 // ENTITY
 message Entity {
-  string Name = 1;
-  bytes PublicKeyName = 2;
+  string  Name = 1;
+  string  Description = 2;
+  bytes   PublicKeyName = 3;
+  string  Algorithm = 4;
+  uint64  CreatedUnixTimestamp = 5;
+  uint64  ModifiedUnixTimestamp = 6;
 }
 
 message GenerateEntityRequest {
   string Name = 1;
+  string  Description = 2;
+  string  Algorithm = 3;
 }
 
 // KEYS

@@ -9,6 +9,7 @@ var (
 		ModifiedAt_UnixTimestamp: uint64(time.Now().Unix()),
 		StorageMap:               make(map[string]FileStorageMap),
 		Storage:                  make(map[string]FileStorage),
+		KeyMap:                   make(map[string]KeyStorage),
 	}
 	LastBackup          int64  = time.Now().UnixMilli()
 	InternalStoragePath string = ".storage"
@@ -28,6 +29,17 @@ type FileStorageMap struct {
 	CreatedAt_UnixTimestamp  uint64                    `json:"created_at_unix_timestamp"`
 	StorageMap               map[string]FileStorageMap `json:"sub_storage"`
 	Storage                  map[string]FileStorage    `json:"storage"`
+	KeyMap                   map[string]KeyStorage     `json:"keyStorage"`
+}
+
+// KeyStorage Structure for each Key
+type KeyStorage struct {
+	Name                     string `json:"name"`
+	Description              string `json:"description"`
+	Path                     string `json:"path"`
+	Algorithm                string `json:"algorithm"`
+	CreatedAt_UnixTimestamp  uint64 `json:"created_at_unix_timestamp"`
+	ModifiedAt_UnixTimestamp uint64 `json:"modified_at_unix_timestamp"`
 }
 
 // FileStorage Structure for each Entry

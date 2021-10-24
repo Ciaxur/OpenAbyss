@@ -9,6 +9,8 @@ import (
 	"log"
 	"openabyss/entity"
 	pb "openabyss/proto/server"
+	"openabyss/server/storage"
+	"time"
 )
 
 // Obtains available stored Entity Keys
@@ -45,10 +47,15 @@ func (s openabyss_server) GetKeys(ctx context.Context, in *pb.EmptyMessage) (*pb
 			Bytes: x509.MarshalPKCS1PublicKey(v.PublicKey),
 		})
 
-		// Construct restponse for the entry
+		// Construct response for the entry
+		_key := storage.Internal.KeyMap[v.Name]
 		respObj.Entities[idx] = &pb.Entity{
-			Name:          v.Name,
-			PublicKeyName: publicKeyBuffer.Bytes(),
+			Name:                  v.Name,
+			PublicKeyName:         publicKeyBuffer.Bytes(),
+			Description:           _key.Description,
+			Algorithm:             _key.Algorithm,
+			CreatedUnixTimestamp:  _key.CreatedAt_UnixTimestamp,
+			ModifiedUnixTimestamp: _key.ModifiedAt_UnixTimestamp,
 		}
 		idx += 1
 	}
@@ -69,10 +76,21 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 	if err == nil {
 		log.Println("Generated Key:", e1.Name)
 		entity.Store.Add(e1)
+		storage.Internal.KeyMap[e1.Name] = storage.KeyStorage{
+			Name:                     e1.Name,
+			Description:              in.Description,
+			Algorithm:                "rsa", // TODO: Change me when other algos are supported
+			CreatedAt_UnixTimestamp:  uint64(time.Now().UnixMilli()),
+			ModifiedAt_UnixTimestamp: uint64(time.Now().UnixMilli()),
+		}
 
 		return &pb.Entity{
-			Name:          e1.Name,
-			PublicKeyName: x509.MarshalPKCS1PublicKey(e1.PublicKey),
+			Name:                  e1.Name,
+			Description:           in.Description,
+			Algorithm:             "rsa'", // TODO: Change me when other algos are supported
+			CreatedUnixTimestamp:  uint64(time.Now().UnixMilli()),
+			ModifiedUnixTimestamp: uint64(time.Now().UnixMilli()),
+			PublicKeyName:         x509.MarshalPKCS1PublicKey(e1.PublicKey),
 		}, nil
 	} else {
 		log.Printf("[GenerateKeyPair]: Could not generate KeyPair for '%s' key\n", in.Name)

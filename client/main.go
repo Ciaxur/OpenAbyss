@@ -72,7 +72,16 @@ func main() {
 		if err == nil {
 			log.Printf("Response[%d]:\n", len(resp.Entities))
 			for _, entry := range resp.Entities {
+				created_at := time.UnixMilli(int64(entry.CreatedUnixTimestamp))
+				modified_at := time.UnixMilli(int64(entry.ModifiedUnixTimestamp))
+
 				log.Printf("== [%s] ==\n", entry.Name)
+				log.Println("- Description: ", entry.Description)
+				log.Println("- Algorithm: ", entry.Algorithm)
+
+				log.Println("- Created on: ", created_at.Local())
+				log.Println("- Modified on: ", modified_at.Local())
+
 				log.Println(string(entry.PublicKeyName))
 			}
 		}
