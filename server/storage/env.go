@@ -38,6 +38,8 @@ type KeyStorage struct {
 	Description              string `json:"description"`
 	Path                     string `json:"path"`
 	Algorithm                string `json:"algorithm"`
+	CipherEncKey             string `json:"cipherEncKey"`
+	CipherAlgorithm          string `json:"cipherAlgorithm"`
 	CreatedAt_UnixTimestamp  uint64 `json:"created_at_unix_timestamp"`
 	ModifiedAt_UnixTimestamp uint64 `json:"modified_at_unix_timestamp"`
 }

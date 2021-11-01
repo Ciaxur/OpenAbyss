@@ -80,6 +80,8 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 			Name:                     e1.Name,
 			Description:              in.Description,
 			Algorithm:                "rsa", // TODO: Change me when other algos are supported
+			CipherEncKey:             string(e1.AesEncryptedKey),
+			CipherAlgorithm:          "aes", // TODO: Change me when other algos are supported
 			CreatedAt_UnixTimestamp:  uint64(time.Now().UnixMilli()),
 			ModifiedAt_UnixTimestamp: uint64(time.Now().UnixMilli()),
 		}

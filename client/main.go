@@ -147,7 +147,7 @@ func main() {
 					// Handle duplicate internal store file found
 					isDuplicate := regexp.MustCompile("(?i)duplicte").MatchString(err.Error())
 					if isDuplicate {
-						console.Warning.Println("Duplicate stored file found. Use -force to overwrite")
+						console.Warning.Println("Duplicate stored file found. Use --force to overwrite")
 					} else {
 						utils.HandleErr(err, "failed to encrypt file")
 					}
