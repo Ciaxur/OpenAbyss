@@ -2,7 +2,6 @@ package entity
 
 import (
 	"bytes"
-	"crypto/aes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -37,10 +36,6 @@ func GenerateKeys(dir string, keyname string, bits int) (Entity, error) {
 	aesKey := make([]byte, 32)
 	rand.Reader.Read(aesKey)
 
-	// Generate the AES Cipher
-	aesCipher, err := aes.NewCipher(aesKey)
-	utils.HandleErr(err, "could not create aes cipher")
-
 	// Encrypt the AES Key
 	encryptedAesKey := bytes.NewBufferString("")
 	err = Encrypt(aesKey, encryptedAesKey, rsaKeyPair)
@@ -52,7 +47,6 @@ func GenerateKeys(dir string, keyname string, bits int) (Entity, error) {
 	return Entity{
 		PrivateKey:      rsaKeyPair,
 		PublicKey:       &rsaKeyPair.PublicKey,
-		Cipher:          &aesCipher,
 		AesEncryptedKey: []byte(b64EncAesKey),
 		Name:            keyname,
 	}, err

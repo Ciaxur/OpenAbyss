@@ -62,12 +62,10 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 		if destWriter, err := os.Create(actualStoredPath); err != nil {
 			utils.HandleErr(err, "[EncryptFile]: failed to create file path")
 		} else {
-			// if err := entity.CipherEncrypt(in.FileBytes, destWriter, sk.Cipher); err != nil { // TODO: Fix meh
-			if err := entity.Encrypt(in.FileBytes, destWriter, sk.PrivateKey); err != nil {
+			if err := entity.CipherEncrypt(in.FileBytes, destWriter, &sk); err != nil {
 				utils.HandleErr(err, "[EncryptFile]: failed to encrypt")
 				destWriter.Close()
 			}
-
 		}
 
 		// Store data in internal storage
@@ -76,7 +74,7 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 			return &pb.EncryptResult{}, errors.New("could not store data internally")
 		} else {
 			storage.Internal.WriteToFile()
-			log.Println("[EncryptFile]: Successfully stored encrypted data internally")
+			log.Printf("[EncryptFile]: Successfully stored encrypted data, %d bytes, internally\n", in.SizeInBytes)
 		}
 
 		return &pb.EncryptResult{
@@ -119,17 +117,16 @@ func (s openabyss_server) DecryptFile(ctx context.Context, in *pb.DecryptRequest
 		destWriter := bytes.NewBuffer(nil)
 
 		// Attempt to Decrypt data
-		// if err := entity.CipherDecrypt(fsBytes, destWriter, sk.Cipher); err != nil {	// TODO: Fix meh
-		if err := entity.Decrypt(fsBytes, destWriter, sk.PrivateKey); err != nil {
+		if err := entity.CipherDecrypt(fsBytes, destWriter, sk); err != nil {
 			log.Printf("[DecryptFile]: Failed to decrypt file '%s'\n", encFilePath)
 			return &pb.FilePacket{}, err
 		}
-		log.Printf("[DecryptFile]: Successfuly decrypted file '%s'\n", encFilePath)
+		log.Printf("[DecryptFile]: Successfuly decrypted, %d bytes, file '%s'\n", fsFile.SizeInBytes, encFilePath)
 
 		// Successful Response
 		return &pb.FilePacket{
 			FileBytes:   destWriter.Bytes(),
-			SizeInBytes: int64(destWriter.Len()),
+			SizeInBytes: int64(fsFile.SizeInBytes),
 			FileName:    path.Base(fsFile.Path),
 			Options: &pb.FileOptions{
 				StoragePath: fsFile.Path,

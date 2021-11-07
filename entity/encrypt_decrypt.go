@@ -1,6 +1,8 @@
 package entity
 
 import (
+	"bytes"
+	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/rsa"
@@ -51,22 +53,55 @@ func Decrypt(data []byte, destWriter io.Writer, sk *rsa.PrivateKey) error {
 	return nil
 }
 
+// Helper funciton that decrypts the given Base64 Encoded and Decrypted CipherKey
+//  returning the cipher block from the encrypted key
+func decryptAesCipherBlock(pk *rsa.PrivateKey, encCipherKey []byte) (cipher.Block, error) {
+	// Decrypt Cipher
+	if cipherKey, err := base64.StdEncoding.DecodeString(string(encCipherKey)); err != nil {
+		return nil, err
+	} else {
+		// Use private key to decrypt AES Key
+		cipherKeyBuffer := bytes.NewBufferString("")
+		if err := Decrypt(cipherKey, cipherKeyBuffer, pk); err != nil {
+			return nil, err
+		}
+
+		// Create Cipher Block from obtained key
+		if cipher, err := aes.NewCipher(cipherKeyBuffer.Bytes()); err != nil {
+			return nil, err
+		} else {
+			return cipher, nil
+		}
+	}
+}
+
 // Attempts to encrypt given data writer using cipher to given destination returning the state of
-//  the encryption
-func CipherEncrypt(data []byte, destWriter io.Writer, cipher *cipher.Block) error {
-	log.Println(cipher)
-	c := *cipher
+//  the encryption. Obtaining Cipher from encrypted key in Enity object.
+func CipherEncrypt(data []byte, destWriter io.Writer, entity *Entity) error {
+	// Decrypt Cipher
+	c, err := decryptAesCipherBlock(entity.PrivateKey, entity.AesEncryptedKey)
+	if err != nil {
+		return err
+	}
 
 	// Encrypt the data
-	encBuffer := make([]byte, len(data))
-	c.Encrypt(data, encBuffer)
+	// Create iv & prepend to ciphertext
+	cipherText := make([]byte, c.BlockSize()+len(data))
+	iv := cipherText[:c.BlockSize()]
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return err
+	}
 
-	if len(encBuffer) == 0 {
+	// Start Encrypting
+	stream := cipher.NewCFBEncrypter(c, iv)
+	stream.XORKeyStream(cipherText[c.BlockSize():], data)
+
+	if len(cipherText) == 0 {
 		return errors.New("internal error: failed to encrypt data using cipher")
 	}
 
 	// Write Encrypted data -> Base64 -> IO Writer
-	_, err := destWriter.Write([]byte(base64.StdEncoding.EncodeToString(encBuffer)))
+	_, err = destWriter.Write([]byte(base64.StdEncoding.EncodeToString(cipherText)))
 	if !utils.HandleErr(err, "could not write encrypted data to writer") {
 		return err
 	}
@@ -75,26 +110,40 @@ func CipherEncrypt(data []byte, destWriter io.Writer, cipher *cipher.Block) erro
 }
 
 // Attempts to decrypt given encrypted data using cipher to destination returning the state of
-//  the decryption
-func CipherDecrypt(data []byte, destWriter io.Writer, cipher *cipher.Block) error {
-	fileBuffer, err := base64.StdEncoding.DecodeString(string(data))
+//  the decryption. Obtaining Cipher from encrypted key in Enity object.
+func CipherDecrypt(data []byte, destWriter io.Writer, entity *Entity) error {
+	// Decrypt Cipher
+	c, err := decryptAesCipherBlock(entity.PrivateKey, entity.AesEncryptedKey)
+	if err != nil {
+		return err
+	}
+
+	// Convert base64 -> ciphertext
+	cipherText, err := base64.StdEncoding.DecodeString(string(data))
 	if err != nil {
 		log.Println("could not base64 decode file:", err.Error())
 		return err
 	}
-	c := *cipher
 
-	// Decrypt the data
-	dataBuffer := make([]byte, len(data))
-	c.Decrypt(dataBuffer, fileBuffer)
-	log.Println(string(dataBuffer))
+	// Decrypt the ciphertext
+	if len(cipherText) < c.BlockSize() {
+		return errors.New("ciphertext too short")
+	}
+	plainText := make([]byte, len(cipherText)-c.BlockSize())
 
-	if len(dataBuffer) == 0 {
+	// Extract iv from prepended ciphertext
+	iv := cipherText[:c.BlockSize()]
+
+	// Start Decrypting
+	stream := cipher.NewCFBDecrypter(c, iv)
+	stream.XORKeyStream(plainText, cipherText[c.BlockSize():])
+
+	if len(plainText) == 0 {
 		return errors.New("internal error: failed to decrypt data using cipher")
 	}
 
 	// Write Decrypter Data -> IO Writer
-	_, err = destWriter.Write(dataBuffer)
+	_, err = destWriter.Write(plainText)
 	if !utils.HandleErr(err, "could not write decrypted data to writer") {
 		return err
 	}

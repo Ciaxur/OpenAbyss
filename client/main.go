@@ -126,7 +126,6 @@ func main() {
 			if fileBytes, err := ioutil.ReadFile(*args.EncryptFile); err != nil {
 				console.Fatalln("could not read in file:", err)
 			} else {
-
 				// Compress given data
 				compBuffer := bytes.NewBuffer(nil)
 				writer := gzip.NewWriter(compBuffer)
@@ -135,7 +134,7 @@ func main() {
 
 				resp, err := client.EncryptFile(ctx, &pb.FilePacket{
 					FileBytes:   compBuffer.Bytes(),
-					SizeInBytes: int64(compBuffer.Len()),
+					SizeInBytes: int64(len(fileBytes)),
 					FileName:    path.Base(*args.EncryptFile),
 					Options: &pb.FileOptions{
 						StoragePath: *args.StoragePath,
@@ -175,7 +174,7 @@ func main() {
 			PrivateKeyName: []byte(*args.KeyId),
 		})
 
-		// Handle resposne
+		// Handle response
 		if err != nil {
 			utils.HandleErr(err, "could no decrypt file")
 		} else {

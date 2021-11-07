@@ -1,7 +1,6 @@
 package entity
 
 import (
-	"crypto/cipher"
 	"crypto/rsa"
 	"openabyss/server/storage"
 	"path"
@@ -18,7 +17,6 @@ var (
 type Entity struct {
 	PublicKey       *rsa.PublicKey
 	PrivateKey      *rsa.PrivateKey
-	Cipher          *cipher.Block
 	AesEncryptedKey []byte
 	Name            string
 }
