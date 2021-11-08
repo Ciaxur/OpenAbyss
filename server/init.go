@@ -44,6 +44,7 @@ func Init() {
 
 	// Validate TLS Files exist, otherwise override to Insecure
 	if !insecure && !(utils.FileExists(tlsCert) || utils.FileExists(tlsKey)) {
+		log.Println("[server.init] Insecure override, no files found")
 		insecure = true
 	}
 }

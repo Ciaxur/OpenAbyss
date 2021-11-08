@@ -25,8 +25,8 @@ var (
 		Insecure:            false,
 		GrpcHost:            "0.0.0.0",
 		GrpcPort:            50051,
-		TLSCertPath:         "cert/server.crt",
-		TLSKeyPath:          "cert/server.key",
+		TLSCertPath:         "cert/server-cert.pem",
+		TLSKeyPath:          "cert/server-key.pem",
 		Backup: BackupSubConfiguration{
 			Enable:          true,
 			RetentionPeriod: 7 * 24 * 60 * 60 * 1000, // 7 Days by default

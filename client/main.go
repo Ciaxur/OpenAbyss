@@ -41,8 +41,11 @@ func main() {
 	var conn_err error = nil
 
 	// Init TLS Credentials
-	if !configuration.LoadedConfig.Insecure {
-		creds, err := credentials.NewClientTLSFromFile("cert/server.crt", "")
+	insecure := configuration.LoadedConfig.Insecure
+	tlsCertPath := configuration.LoadedConfig.TLSCertPath
+
+	if !insecure {
+		creds, err := credentials.NewClientTLSFromFile(tlsCertPath, "")
 		if err != nil {
 			console.Fatalln("tls could not be read from file:", err)
 		}
