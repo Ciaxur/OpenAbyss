@@ -13,8 +13,9 @@ service OpenAbyss {
   // Generates new Keypair
   rpc GenerateKeyPair(GenerateEntityRequest) returns (Entity) {}
 
-  // Modify keypair
+  // Modify/Remove keypair
   rpc ModifyKeyPair(EntityModifyRequest) returns (Entity) {}
+  rpc RemoveKeyPair(EntityRemoveRequest) returns (Entity) {}
 
   // Encrypt/Decrypt File
   rpc EncryptFile(FilePacket) returns (EncryptResult) {}
@@ -81,6 +82,10 @@ message EntityModifyRequest {
   string  Name = 1;
   string  Description = 2;
   string  KeyId = 3;
+}
+
+message EntityRemoveRequest {
+  string KeyId = 1;
 }
 
 message GenerateEntityRequest {

@@ -73,6 +73,16 @@ func handleKeysSubCmd(actions []string, context *ClientContext) {
 			console.Heading.Printf("Key Details modified for '%s':\n", color.WhiteString(*context.args.KeyIdMod))
 			printEntity(resp)
 		}
+	case "remove":
+		resp, err := context.pbClient.RemoveKeyPair(context.ctx, &pb.EntityRemoveRequest{
+			KeyId: *context.args.KeyIdRem,
+		})
+		utils.HandleErr(err, "could not remove key for given key-id")
+
+		if err == nil {
+			console.Heading.Printf("Key '%s' successfully removed:\n", color.WhiteString(*context.args.KeyIdRem))
+			printEntity(resp)
+		}
 	}
 }
 

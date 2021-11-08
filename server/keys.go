@@ -173,3 +173,39 @@ func (s openabyss_server) ModifyKeyPair(ctx context.Context, in *pb.EntityModify
 		ModifiedUnixTimestamp: entity.ModifiedAt_UnixTimestamp,
 	}, nil
 }
+
+// Remove existing keypair
+func (s openabyss_server) RemoveKeyPair(ctx context.Context, in *pb.EntityRemoveRequest) (*pb.Entity, error) {
+
+	// Get entry to be removed
+	if entry, ok := storage.Internal.KeyMap[in.KeyId]; !ok {
+		log.Printf("[RemoveKeyPair]: Key '%s' not found\n", in.KeyId)
+		return nil, errors.New("key-id not found")
+	} else {
+		log.Printf("[RemoveKeyPair]: Removing '%s' key\n", in.KeyId)
+
+		// Generate Public Key Buffer
+		v := entity.Store.Keys[in.KeyId]
+		publicKeyBuffer := bytes.NewBuffer(nil)
+		pem.Encode(publicKeyBuffer, &pem.Block{
+			Type:  "RSA PUBLIC KEY",
+			Bytes: x509.MarshalPKCS1PublicKey(v.PublicKey),
+		})
+
+		// Remove Key from Key Store and Internal Storage
+		delete(entity.Store.Keys, in.KeyId)
+		delete(storage.Internal.KeyMap, in.KeyId)
+		os.Remove(path.Join(entity.KeyStorePath, in.KeyId+".pub"))
+		os.Remove(path.Join(entity.KeyStorePath, in.KeyId))
+		entity.Store.Length -= 1
+
+		return &pb.Entity{
+			Name:                  entry.Name,
+			Description:           entry.Description,
+			PublicKeyName:         publicKeyBuffer.Bytes(),
+			Algorithm:             entry.Algorithm,
+			CreatedUnixTimestamp:  entry.CreatedAt_UnixTimestamp,
+			ModifiedUnixTimestamp: entry.ModifiedAt_UnixTimestamp, // Last modified
+		}, nil
+	}
+}

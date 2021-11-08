@@ -19,6 +19,9 @@ type Arguments struct {
 	KeyPairNameMod        *string
 	KeyPairDescriptionMod *string
 
+	// KEY REMOVE
+	KeyIdRem *string
+
 	// LIST
 	ListStoragePath *string
 
@@ -76,6 +79,10 @@ func ParseArguments() (string, *Arguments) {
 	args.KeyIdMod = keyModCmd.Flag("key-id", "Key name to modify").Required().String()
 	args.KeyPairNameMod = keyModCmd.Flag("name", "Modify key name").Default("").String()
 	args.KeyPairDescriptionMod = keyModCmd.Flag("description", "Modify key description").Default("").String()
+
+	// KEY: Modify
+	keyRemCmd := keyCmd.Command("remove", "Key removal sub-menu")
+	args.KeyIdRem = keyRemCmd.Flag("key-id", "Key name to remove").Required().String()
 
 	// KEY: Generation
 	keyGenerateCmd := keyCmd.Command("generate", "Generate Keypair given key metadata")
