@@ -65,6 +65,12 @@ func handleListKeysSubCmd(actions []string, context *ClientContext) {
 	resp, err := context.pbClient.GetKeys(context.ctx, &pb.EmptyMessage{})
 	utils.HandleErr(err, "could no get keys")
 	if err == nil {
+		// Log there are no keys if none are returned
+		if len(resp.Entities) == 0 {
+			console.Info.Println("No keys found. Consider generating one.")
+			return
+		}
+
 		for _, entry := range resp.Entities {
 			created_at := time.UnixMilli(int64(entry.CreatedUnixTimestamp))
 			modified_at := time.UnixMilli(int64(entry.ModifiedUnixTimestamp))
