@@ -1,7 +1,7 @@
 FROM golang:1.17
 
 # Copy required app files
-WORKDIR /go/src/app
+WORKDIR /app
 COPY . .
 
 # Build Server Binary and Clean up to slim image

@@ -3,5 +3,9 @@ services:
   openabyss-server:
     build: ./
     container_name: openabyss-server
+    volumes:
+      - ./.config:/app/.config
+      - ./.storage:/app/.storage
+      - ./cert:/app/cert
     ports:
       - 50051:50051
