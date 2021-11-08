@@ -24,6 +24,8 @@ type OpenAbyssClient interface {
 	GetKeys(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*GetKeysResponse, error)
 	// Generates new Keypair
 	GenerateKeyPair(ctx context.Context, in *GenerateEntityRequest, opts ...grpc.CallOption) (*Entity, error)
+	// Modify keypair
+	ModifyKeyPair(ctx context.Context, in *EntityModifyRequest, opts ...grpc.CallOption) (*Entity, error)
 	// Encrypt/Decrypt File
 	EncryptFile(ctx context.Context, in *FilePacket, opts ...grpc.CallOption) (*EncryptResult, error)
 	DecryptFile(ctx context.Context, in *DecryptRequest, opts ...grpc.CallOption) (*FilePacket, error)
@@ -71,6 +73,15 @@ func (c *openAbyssClient) GetKeys(ctx context.Context, in *EmptyMessage, opts ..
 func (c *openAbyssClient) GenerateKeyPair(ctx context.Context, in *GenerateEntityRequest, opts ...grpc.CallOption) (*Entity, error) {
 	out := new(Entity)
 	err := c.cc.Invoke(ctx, "/server.OpenAbyss/GenerateKeyPair", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *openAbyssClient) ModifyKeyPair(ctx context.Context, in *EntityModifyRequest, opts ...grpc.CallOption) (*Entity, error) {
+	out := new(Entity)
+	err := c.cc.Invoke(ctx, "/server.OpenAbyss/ModifyKeyPair", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -195,6 +206,8 @@ type OpenAbyssServer interface {
 	GetKeys(context.Context, *EmptyMessage) (*GetKeysResponse, error)
 	// Generates new Keypair
 	GenerateKeyPair(context.Context, *GenerateEntityRequest) (*Entity, error)
+	// Modify keypair
+	ModifyKeyPair(context.Context, *EntityModifyRequest) (*Entity, error)
 	// Encrypt/Decrypt File
 	EncryptFile(context.Context, *FilePacket) (*EncryptResult, error)
 	DecryptFile(context.Context, *DecryptRequest) (*FilePacket, error)
@@ -226,6 +239,9 @@ func (UnimplementedOpenAbyssServer) GetKeys(context.Context, *EmptyMessage) (*Ge
 }
 func (UnimplementedOpenAbyssServer) GenerateKeyPair(context.Context, *GenerateEntityRequest) (*Entity, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateKeyPair not implemented")
+}
+func (UnimplementedOpenAbyssServer) ModifyKeyPair(context.Context, *EntityModifyRequest) (*Entity, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ModifyKeyPair not implemented")
 }
 func (UnimplementedOpenAbyssServer) EncryptFile(context.Context, *FilePacket) (*EncryptResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EncryptFile not implemented")
@@ -326,6 +342,24 @@ func _OpenAbyss_GenerateKeyPair_Handler(srv interface{}, ctx context.Context, de
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(OpenAbyssServer).GenerateKeyPair(ctx, req.(*GenerateEntityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OpenAbyss_ModifyKeyPair_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EntityModifyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpenAbyssServer).ModifyKeyPair(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/server.OpenAbyss/ModifyKeyPair",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpenAbyssServer).ModifyKeyPair(ctx, req.(*EntityModifyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -564,6 +598,10 @@ var OpenAbyss_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GenerateKeyPair",
 			Handler:    _OpenAbyss_GenerateKeyPair_Handler,
+		},
+		{
+			MethodName: "ModifyKeyPair",
+			Handler:    _OpenAbyss_ModifyKeyPair_Handler,
 		},
 		{
 			MethodName: "EncryptFile",

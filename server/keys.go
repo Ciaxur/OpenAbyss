@@ -10,6 +10,9 @@ import (
 	"openabyss/entity"
 	pb "openabyss/proto/server"
 	"openabyss/server/storage"
+	"os"
+	"path"
+	"strings"
 	"time"
 )
 
@@ -39,7 +42,7 @@ func (s openabyss_server) GetKeys(ctx context.Context, in *pb.EmptyMessage) (*pb
 	}
 
 	idx := 0
-	for _, v := range entity.Store.Keys {
+	for k, v := range entity.Store.Keys {
 		// Encode Public Key
 		publicKeyBuffer := bytes.NewBuffer(nil)
 		pem.Encode(publicKeyBuffer, &pem.Block{
@@ -48,9 +51,9 @@ func (s openabyss_server) GetKeys(ctx context.Context, in *pb.EmptyMessage) (*pb
 		})
 
 		// Construct response for the entry
-		_key := storage.Internal.KeyMap[v.Name]
+		_key := storage.Internal.KeyMap[k]
 		respObj.Entities[idx] = &pb.Entity{
-			Name:                  v.Name,
+			Name:                  _key.Name,
 			PublicKeyName:         publicKeyBuffer.Bytes(),
 			Description:           _key.Description,
 			Algorithm:             _key.Algorithm,
@@ -98,4 +101,62 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 		log.Printf("[GenerateKeyPair]: Could not generate KeyPair for '%s' key\n", in.Name)
 	}
 	return nil, err
+}
+
+// Modify existing keypair
+func (s openabyss_server) ModifyKeyPair(ctx context.Context, in *pb.EntityModifyRequest) (*pb.Entity, error) {
+	log.Printf("[ModifyKeyPair]: Modifying '%s' key\n", in.KeyId)
+
+	// Trim spaces
+	newName := strings.Trim(in.Name, " ")
+	newDesc := strings.Trim(in.Description, " ")
+
+	// Get entry to be modified
+	if entry, ok := storage.Internal.KeyMap[in.KeyId]; !ok {
+		log.Printf("[ModifyKeyPair]: '%s' key not found\n", in.KeyId)
+		return nil, errors.New("entity key-id not found")
+	} else {
+		// Verify no Duplicates
+		if _, ok := storage.Internal.KeyMap[newName]; ok {
+			return nil, errors.New("new name for key already exists")
+		}
+
+		// Start modifying
+		if newName != "" {
+			log.Printf("[ModifyKeyPair]: Modifying name '%s' -> '%s'\n", entry.Name, newName)
+			entry.Name = newName
+		}
+		if newDesc != "" {
+			log.Printf("[ModifyKeyPair]: Modifying name '%s' -> '%s'\n", entry.Description, newDesc)
+			entry.Description = newDesc
+		}
+
+		// Modify new Key
+		entry.ModifiedAt_UnixTimestamp = uint64(time.Now().UnixMilli())
+		storage.Internal.KeyMap[in.Name] = entry
+
+		// Modify Key name & old map entries
+		if in.KeyId != newName {
+			// Modify Entity Key Store
+			newStoreKey := entity.Store.Keys[in.KeyId]
+			newStoreKey.Name = newName
+			entity.Store.Keys[newName] = newStoreKey
+			os.Rename(path.Join(entity.KeyStorePath, in.KeyId), path.Join(entity.KeyStorePath, newName))
+			os.Rename(path.Join(entity.KeyStorePath, in.KeyId+".pub"), path.Join(entity.KeyStorePath, newName+".pub"))
+
+			// Remove old Keys
+			delete(entity.Store.Keys, in.KeyId)
+			delete(storage.Internal.KeyMap, in.KeyId)
+		}
+	}
+
+	entity := storage.Internal.KeyMap[newName]
+	return &pb.Entity{
+		Name:                  entity.Name,
+		Description:           entity.Description,
+		PublicKeyName:         []byte(""),
+		Algorithm:             entity.Algorithm,
+		CreatedUnixTimestamp:  entity.CreatedAt_UnixTimestamp,
+		ModifiedUnixTimestamp: entity.ModifiedAt_UnixTimestamp,
+	}, nil
 }

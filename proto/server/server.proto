@@ -13,6 +13,9 @@ service OpenAbyss {
   // Generates new Keypair
   rpc GenerateKeyPair(GenerateEntityRequest) returns (Entity) {}
 
+  // Modify keypair
+  rpc ModifyKeyPair(EntityModifyRequest) returns (Entity) {}
+
   // Encrypt/Decrypt File
   rpc EncryptFile(FilePacket) returns (EncryptResult) {}
   rpc DecryptFile(DecryptRequest) returns (FilePacket) {}
@@ -72,6 +75,12 @@ message Entity {
   string  Algorithm = 4;
   uint64  CreatedUnixTimestamp = 5;
   uint64  ModifiedUnixTimestamp = 6;
+}
+
+message EntityModifyRequest {
+  string  Name = 1;
+  string  Description = 2;
+  string  KeyId = 3;
 }
 
 message GenerateEntityRequest {

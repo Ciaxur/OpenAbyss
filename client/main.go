@@ -31,6 +31,22 @@ type ClientContext struct {
 	args     *Arguments
 }
 
+// Helper function that prints entity details
+func printEntity(entity *pb.Entity) {
+	created_at := time.UnixMilli(int64(entity.CreatedUnixTimestamp))
+	modified_at := time.UnixMilli(int64(entity.ModifiedUnixTimestamp))
+
+	console.Heading.Printf("== [%s] ==\n", entity.Name)
+	console.Log.Println("- Description: ", entity.Description)
+	console.Log.Println("- Algorithm: ", entity.Algorithm)
+
+	console.Log.Println("- Created on: ", created_at.Local())
+	console.Log.Println("- Modified on: ", modified_at.Local())
+
+	console.Log.Println("- Public Key:")
+	console.Log.Println(string(entity.PublicKeyName))
+}
+
 // Subcommand-Handler: Generate
 func handleKeysSubCmd(actions []string, context *ClientContext) {
 	switch actions[0] {
@@ -45,8 +61,19 @@ func handleKeysSubCmd(actions []string, context *ClientContext) {
 		if err == nil {
 			console.Heading.Printf("Generated keypair for '%s':\n", color.WhiteString(resp.Name))
 		}
-	}
+	case "modify":
+		resp, err := context.pbClient.ModifyKeyPair(context.ctx, &pb.EntityModifyRequest{
+			Name:        *context.args.KeyPairNameMod,
+			Description: *context.args.KeyPairDescriptionMod,
+			KeyId:       *context.args.KeyIdMod,
+		})
+		utils.HandleErr(err, "could not modify key details for given key-id")
 
+		if err == nil {
+			console.Heading.Printf("Key Details modified for '%s':\n", color.WhiteString(*context.args.KeyIdMod))
+			printEntity(resp)
+		}
+	}
 }
 
 // Subcommand-Handler: List Keys
@@ -76,18 +103,7 @@ func handleListKeysSubCmd(actions []string, context *ClientContext) {
 		}
 
 		for _, entry := range resp.Entities {
-			created_at := time.UnixMilli(int64(entry.CreatedUnixTimestamp))
-			modified_at := time.UnixMilli(int64(entry.ModifiedUnixTimestamp))
-
-			console.Heading.Printf("== [%s] ==\n", entry.Name)
-			console.Log.Println("- Description: ", entry.Description)
-			console.Log.Println("- Algorithm: ", entry.Algorithm)
-
-			console.Log.Println("- Created on: ", created_at.Local())
-			console.Log.Println("- Modified on: ", modified_at.Local())
-
-			console.Log.Println("- Public Key:")
-			console.Log.Println(string(entry.PublicKeyName))
+			printEntity(entry)
 		}
 	}
 }

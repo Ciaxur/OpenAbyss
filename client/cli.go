@@ -14,6 +14,11 @@ type Arguments struct {
 	KeyPairDescription *string
 	KeyPairAlgo        *string
 
+	// KEY MOD
+	KeyIdMod              *string
+	KeyPairNameMod        *string
+	KeyPairDescriptionMod *string
+
 	// LIST
 	ListStoragePath *string
 
@@ -66,11 +71,17 @@ func ParseArguments() (string, *Arguments) {
 	// KEY
 	keyCmd := kingpin.Command("keys", "Key interaction sub-menu")
 
+	// KEY: Modify
+	keyModCmd := keyCmd.Command("modify", "Key modification sub-menu")
+	args.KeyIdMod = keyModCmd.Flag("key-id", "Key name to modify").Required().String()
+	args.KeyPairNameMod = keyModCmd.Flag("name", "Modify key name").Default("").String()
+	args.KeyPairDescriptionMod = keyModCmd.Flag("description", "Modify key description").Default("").String()
+
 	// KEY: Generation
 	keyGenerateCmd := keyCmd.Command("generate", "Generate Keypair given key metadata")
 	args.KeyPairName = keyGenerateCmd.Flag("name", "Generated key's name").Required().String()
-	args.KeyPairDescription = keyCmd.Flag("description", "Generated key's description").Default("").String()
-	args.KeyPairAlgo = keyCmd.Flag("algorithm", "Generated key's algorithm").Default("rsa").String()
+	args.KeyPairDescription = keyGenerateCmd.Flag("description", "Generated key's description").Default("").String()
+	args.KeyPairAlgo = keyGenerateCmd.Flag("algorithm", "Generated key's algorithm").Default("rsa").String()
 
 	// ENCRYPT
 	encryptCmd := kingpin.Command("encrypt", "Encrypts given path, storing it in given storage path")
