@@ -19,6 +19,11 @@ import (
 
 // Encrypts requested file, saving the location to an internal structure
 func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*pb.EncryptResult, error) {
+	// Verify Key provided
+	if len(in.Options.KeyName) == 0 {
+		return nil, errors.New("no key name provided")
+	}
+
 	// Adjust root path
 	storagePath := regexp.MustCompile(`^(\.*)/`).ReplaceAllString(in.Options.StoragePath, "")
 	log.Printf("[EncryptFile]: storagePath extracted: '%s' - '%s'\n", in.Options.StoragePath, storagePath)
@@ -89,6 +94,11 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 
 // Encrypts requested file, saving the location to an internal structure
 func (s openabyss_server) DecryptFile(ctx context.Context, in *pb.DecryptRequest) (*pb.FilePacket, error) {
+	// Verify Key provided
+	if len(in.PrivateKeyName) == 0 {
+		return nil, errors.New("no key name provided")
+	}
+
 	// Get suplied entity based on name
 	sk := entity.Store.Get(string(in.PrivateKeyName))
 	if sk == nil {

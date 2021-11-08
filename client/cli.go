@@ -75,13 +75,13 @@ func ParseArguments() (string, *Arguments) {
 	// ENCRYPT
 	encryptCmd := kingpin.Command("encrypt", "Encrypts given path, storing it in given storage path")
 	args.EncryptFile = encryptCmd.Flag("path", "Path to the file to encrypt").Required().String()
-	args.EncryptKeyId = encryptCmd.Flag("key-id", "Key's id/name used to encrypt").Default("").String()
+	args.EncryptKeyId = encryptCmd.Flag("key-id", "Key's id/name used to encrypt").Required().String()
 	args.StoragePath = encryptCmd.Flag("storage-path", "Internal path to store encrpyted data").Default("/").String()
 
 	// DECRYPT
 	decryptCmd := kingpin.Command("decrypt", "Decrypts file from given path, responding with file data")
 	args.DecryptFile = decryptCmd.Flag("path", "Path to the file to decrypt on server").Required().String()
-	args.DecryptKeyId = decryptCmd.Flag("key-id", "Key's id/name used to encrypt").Default("").String()
+	args.DecryptKeyId = decryptCmd.Flag("key-id", "Key's id/name used to encrypt").Required().String()
 	args.FilePacketOutput = decryptCmd.Flag("file-packet-out", "Destination for incoming file packet data. Default: Outputs to stdout").Default("").String()
 
 	// BACKUP
