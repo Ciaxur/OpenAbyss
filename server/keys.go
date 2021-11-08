@@ -105,8 +105,6 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 
 // Modify existing keypair
 func (s openabyss_server) ModifyKeyPair(ctx context.Context, in *pb.EntityModifyRequest) (*pb.Entity, error) {
-	log.Printf("[ModifyKeyPair]: Modifying '%s' key\n", in.KeyId)
-
 	// Trim spaces
 	newName := strings.Trim(in.Name, " ")
 	newDesc := strings.Trim(in.Description, " ")
@@ -116,27 +114,31 @@ func (s openabyss_server) ModifyKeyPair(ctx context.Context, in *pb.EntityModify
 		log.Printf("[ModifyKeyPair]: '%s' key not found\n", in.KeyId)
 		return nil, errors.New("entity key-id not found")
 	} else {
+		log.Printf("[ModifyKeyPair]: Modifying '%s' key\n", in.KeyId)
+
 		// Verify no Duplicates
 		if _, ok := storage.Internal.KeyMap[newName]; ok {
 			return nil, errors.New("new name for key already exists")
 		}
 
 		// Start modifying
-		if newName != "" {
+		if len(newName) > 0 {
 			log.Printf("[ModifyKeyPair]: Modifying name '%s' -> '%s'\n", entry.Name, newName)
 			entry.Name = newName
 		}
-		if newDesc != "" {
-			log.Printf("[ModifyKeyPair]: Modifying name '%s' -> '%s'\n", entry.Description, newDesc)
+		if len(newDesc) > 0 {
+			log.Printf("[ModifyKeyPair]: Modifying description '%s' -> '%s'\n", entry.Description, newDesc)
 			entry.Description = newDesc
 		}
 
-		// Modify new Key
+		// Modify new Data
 		entry.ModifiedAt_UnixTimestamp = uint64(time.Now().UnixMilli())
-		storage.Internal.KeyMap[in.Name] = entry
 
 		// Modify Key name & old map entries
-		if in.KeyId != newName {
+		if len(newName) > 0 && in.KeyId != newName {
+			// Store internally with new key
+			storage.Internal.KeyMap[newName] = entry
+
 			// Modify Entity Key Store
 			newStoreKey := entity.Store.Keys[in.KeyId]
 			newStoreKey.Name = newName
@@ -147,14 +149,25 @@ func (s openabyss_server) ModifyKeyPair(ctx context.Context, in *pb.EntityModify
 			// Remove old Keys
 			delete(entity.Store.Keys, in.KeyId)
 			delete(storage.Internal.KeyMap, in.KeyId)
+		} else { // Store new metadata
+			storage.Internal.KeyMap[in.KeyId] = entry
+			newName = in.KeyId
 		}
 	}
+
+	// Generate Public Key Buffer
+	v := entity.Store.Keys[newName]
+	publicKeyBuffer := bytes.NewBuffer(nil)
+	pem.Encode(publicKeyBuffer, &pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: x509.MarshalPKCS1PublicKey(v.PublicKey),
+	})
 
 	entity := storage.Internal.KeyMap[newName]
 	return &pb.Entity{
 		Name:                  entity.Name,
 		Description:           entity.Description,
-		PublicKeyName:         []byte(""),
+		PublicKeyName:         publicKeyBuffer.Bytes(),
 		Algorithm:             entity.Algorithm,
 		CreatedUnixTimestamp:  entity.CreatedAt_UnixTimestamp,
 		ModifiedUnixTimestamp: entity.ModifiedAt_UnixTimestamp,
