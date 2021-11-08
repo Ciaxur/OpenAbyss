@@ -32,17 +32,21 @@ type ClientContext struct {
 }
 
 // Subcommand-Handler: Generate
-func handleGenerateSubCmd(actions []string, context *ClientContext) {
-	resp, err := context.pbClient.GenerateKeyPair(context.ctx, &pb.GenerateEntityRequest{
-		Name:        *context.args.KeyPairName,
-		Description: *context.args.KeyPairDescription,
-		Algorithm:   "rsa", // TODO: Change when various algos allowed
-	})
-	utils.HandleErr(err, "could not generate keypair for given name")
+func handleKeysSubCmd(actions []string, context *ClientContext) {
+	switch actions[0] {
+	case "generate":
+		resp, err := context.pbClient.GenerateKeyPair(context.ctx, &pb.GenerateEntityRequest{
+			Name:        *context.args.KeyPairName,
+			Description: *context.args.KeyPairDescription,
+			Algorithm:   "rsa", // TODO: Change when various algos allowed
+		})
+		utils.HandleErr(err, "could not generate keypair for given name")
 
-	if err == nil {
-		console.Heading.Printf("Generated keypair for '%s':\n", color.WhiteString(resp.Name))
+		if err == nil {
+			console.Heading.Printf("Generated keypair for '%s':\n", color.WhiteString(resp.Name))
+		}
 	}
+
 }
 
 // Subcommand-Handler: List Keys
@@ -451,8 +455,8 @@ func main() {
 		} else if actions[0] == "storage" {
 			handleListStorageSubCmd(actions[1:], &context)
 		}
-	case "generate":
-		handleGenerateSubCmd(actions, &context)
+	case "keys":
+		handleKeysSubCmd(actions, &context)
 	case "encrypt":
 		handleEncryptSubCmd(actions, &context)
 	case "decrypt":
