@@ -83,6 +83,20 @@ func handleKeysSubCmd(actions []string, context *ClientContext) {
 			console.Heading.Printf("Key '%s' successfully removed:\n", color.WhiteString(*context.args.KeyIdRem))
 			printEntity(resp)
 		}
+	case "import":
+		console.Log.Println("TODO: IMPLEMENT ME:")
+	case "export":
+		resp, err := context.pbClient.ExportKey(context.ctx, &pb.KeyExportRequest{
+			KeyId: *context.args.KeyExportKeyId,
+		})
+		utils.HandleErr(err, "could not export key for given key-id")
+		if err == nil {
+			if err := ioutil.WriteFile(*context.args.KeyExportFilePath, resp.KeyGzip, 0644); err != nil {
+				console.Error.Printf("Failed to export key '%s' to destination '%s'\n", color.WhiteString(*context.args.KeyExportKeyId), color.WhiteString(*context.args.KeyExportFilePath))
+			} else {
+				console.Info.Println("Successsfully export to", color.WhiteString(*context.args.KeyExportFilePath))
+			}
+		}
 	}
 }
 

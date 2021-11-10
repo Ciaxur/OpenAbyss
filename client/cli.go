@@ -22,6 +22,12 @@ type Arguments struct {
 	// KEY REMOVE
 	KeyIdRem *string
 
+	// KEY EXPORT/IMPORT
+	KeyExportFilePath *string
+	KeyExportKeyId    *string
+	KeyImportFilePath *string
+	KeyImportKeyId    *string
+
 	// LIST
 	ListStoragePath *string
 
@@ -90,6 +96,16 @@ func ParseArguments() (string, *Arguments) {
 	args.KeyPairDescription = keyGenerateCmd.Flag("description", "Generated key's description").Default("").String()
 	args.KeyPairAlgo = keyGenerateCmd.Flag("algorithm", "Generated key's algorithm").Default("rsa").String()
 
+	// KEY: Export
+	keyExportCmd := keyCmd.Command("export", "Export key sub-menu")
+	args.KeyExportFilePath = keyExportCmd.Flag("dest", "Destination of exported keys").Required().String()
+	args.KeyExportKeyId = keyExportCmd.Flag("key-id", "Key's id/name to export").Required().String()
+
+	// KEY: Import
+	keyImportCmd := keyCmd.Command("import", "Import key sub-menu")
+	args.KeyImportFilePath = keyImportCmd.Flag("path", "Path to key that will be imported").Required().String()
+	args.KeyImportKeyId = keyImportCmd.Flag("key-id", "Key's id/name to be imported to").Required().String()
+
 	// ENCRYPT
 	encryptCmd := kingpin.Command("encrypt", "Encrypts given path, storing it in given storage path")
 	args.EncryptFile = encryptCmd.Flag("path", "Path to the file to encrypt").Required().String()
@@ -100,7 +116,7 @@ func ParseArguments() (string, *Arguments) {
 	decryptCmd := kingpin.Command("decrypt", "Decrypts file from given path, responding with file data")
 	args.DecryptFile = decryptCmd.Flag("path", "Path to the file to decrypt on server").Required().String()
 	args.DecryptKeyId = decryptCmd.Flag("key-id", "Key's id/name used to encrypt").Required().String()
-	args.FilePacketOutput = decryptCmd.Flag("out", "Destination for incoming file packet data. Default: Outputs to stdout").Default("").String()
+	args.FilePacketOutput = decryptCmd.Flag("dest", "Destination for incoming file packet data. Default: Outputs to stdout").Default("").String()
 
 	// BACKUP
 	backupCmd := kingpin.Command("backup", "Backup Commands")

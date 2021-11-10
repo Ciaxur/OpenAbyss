@@ -20,6 +20,10 @@ service OpenAbyss {
   // Encrypt/Decrypt File
   rpc EncryptFile(FilePacket) returns (EncryptResult) {}
   rpc DecryptFile(DecryptRequest) returns (FilePacket) {}
+
+  // Import/Export Keys
+  rpc ImportKey(KeyImportRequest) returns (KeyImportResponse) {}
+  rpc ExportKey(KeyExportRequest) returns (KeyExportResponse) {}
   
   // Internal FileStorage Mods
   rpc ModifyEntity(EntityMod) returns (EmptyMessage) {}
@@ -101,6 +105,24 @@ message GetKeysResponse {
 
 message GetKeyNamesResponse {
   repeated string Keys = 1;
+}
+
+// KEYS: IMPORT
+message KeyImportRequest {
+  bytes   KeyGzip = 1;
+  string  KeyId = 2;
+}
+
+message KeyImportResponse {}
+
+// KEYS: EXPORT
+message KeyExportRequest {
+  string  KeyId = 1;
+}
+
+message KeyExportResponse {
+  bytes   KeyGzip = 1;
+  string  KeyId = 2;
 }
 
 // PATHS

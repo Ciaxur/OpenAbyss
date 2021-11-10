@@ -30,6 +30,8 @@ type OpenAbyssClient interface {
 	// Encrypt/Decrypt File
 	EncryptFile(ctx context.Context, in *FilePacket, opts ...grpc.CallOption) (*EncryptResult, error)
 	DecryptFile(ctx context.Context, in *DecryptRequest, opts ...grpc.CallOption) (*FilePacket, error)
+	ExportKey(ctx context.Context, in *KeyExportRequest, opts ...grpc.CallOption) (*KeyExportResponse, error)
+	ImportKey(ctx context.Context, in *KeyImportRequest, opts ...grpc.CallOption) (*KeyImportResponse, error)
 	// Internal FileStorage Mods
 	ModifyEntity(ctx context.Context, in *EntityMod, opts ...grpc.CallOption) (*EmptyMessage, error)
 	// Lists stored path contents
@@ -110,6 +112,24 @@ func (c *openAbyssClient) EncryptFile(ctx context.Context, in *FilePacket, opts 
 func (c *openAbyssClient) DecryptFile(ctx context.Context, in *DecryptRequest, opts ...grpc.CallOption) (*FilePacket, error) {
 	out := new(FilePacket)
 	err := c.cc.Invoke(ctx, "/server.OpenAbyss/DecryptFile", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *openAbyssClient) ExportKey(ctx context.Context, in *KeyExportRequest, opts ...grpc.CallOption) (*KeyExportResponse, error) {
+	out := new(KeyExportResponse)
+	err := c.cc.Invoke(ctx, "/server.OpenAbyss/ExportKey", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *openAbyssClient) ImportKey(ctx context.Context, in *KeyImportRequest, opts ...grpc.CallOption) (*KeyImportResponse, error) {
+	out := new(KeyImportResponse)
+	err := c.cc.Invoke(ctx, "/server.OpenAbyss/ImportKey", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -222,6 +242,8 @@ type OpenAbyssServer interface {
 	// Encrypt/Decrypt File
 	EncryptFile(context.Context, *FilePacket) (*EncryptResult, error)
 	DecryptFile(context.Context, *DecryptRequest) (*FilePacket, error)
+	ExportKey(context.Context, *KeyExportRequest) (*KeyExportResponse, error)
+	ImportKey(context.Context, *KeyImportRequest) (*KeyImportResponse, error)
 	// Internal FileStorage Mods
 	ModifyEntity(context.Context, *EntityMod) (*EmptyMessage, error)
 	// Lists stored path contents
@@ -262,6 +284,12 @@ func (UnimplementedOpenAbyssServer) EncryptFile(context.Context, *FilePacket) (*
 }
 func (UnimplementedOpenAbyssServer) DecryptFile(context.Context, *DecryptRequest) (*FilePacket, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DecryptFile not implemented")
+}
+func (UnimplementedOpenAbyssServer) ExportKey(context.Context, *KeyExportRequest) (*KeyExportResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExportKey not implemented")
+}
+func (UnimplementedOpenAbyssServer) ImportKey(context.Context, *KeyImportRequest) (*KeyImportResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ImportKey not implemented")
 }
 func (UnimplementedOpenAbyssServer) ModifyEntity(context.Context, *EntityMod) (*EmptyMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ModifyEntity not implemented")
@@ -428,6 +456,42 @@ func _OpenAbyss_DecryptFile_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(OpenAbyssServer).DecryptFile(ctx, req.(*DecryptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OpenAbyss_ExportKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KeyExportRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpenAbyssServer).ExportKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/server.OpenAbyss/ExportKey",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpenAbyssServer).ExportKey(ctx, req.(*KeyExportRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OpenAbyss_ImportKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KeyImportRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpenAbyssServer).ImportKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/server.OpenAbyss/ImportKey",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpenAbyssServer).ImportKey(ctx, req.(*KeyImportRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -646,6 +710,14 @@ var OpenAbyss_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DecryptFile",
 			Handler:    _OpenAbyss_DecryptFile_Handler,
+		},
+		{
+			MethodName: "ExportKey",
+			Handler:    _OpenAbyss_ExportKey_Handler,
+		},
+		{
+			MethodName: "ImportKey",
+			Handler:    _OpenAbyss_ImportKey_Handler,
 		},
 		{
 			MethodName: "ModifyEntity",
