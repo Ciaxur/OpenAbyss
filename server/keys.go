@@ -53,12 +53,13 @@ func (s openabyss_server) GetKeys(ctx context.Context, in *pb.EmptyMessage) (*pb
 		// Construct response for the entry
 		_key := storage.Internal.KeyMap[k]
 		respObj.Entities[idx] = &pb.Entity{
-			Name:                  _key.Name,
-			PublicKeyName:         publicKeyBuffer.Bytes(),
-			Description:           _key.Description,
-			Algorithm:             _key.Algorithm,
-			CreatedUnixTimestamp:  _key.CreatedAt_UnixTimestamp,
-			ModifiedUnixTimestamp: _key.ModifiedAt_UnixTimestamp,
+			Name:                   _key.Name,
+			PublicKeyName:          publicKeyBuffer.Bytes(),
+			Description:            _key.Description,
+			Algorithm:              _key.Algorithm,
+			CreatedUnixTimestamp:   _key.CreatedAt_UnixTimestamp,
+			ModifiedUnixTimestamp:  _key.ModifiedAt_UnixTimestamp,
+			ExpiresAtUnixTimestamp: _key.ExpiresAt_UnixTimestamp,
 		}
 		idx += 1
 	}
@@ -77,6 +78,12 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 	log.Printf("[GenerateKeyPair]: Generating KeyPair for '%s' key\n", in.Name)
 	e1, err := entity.GenerateKeys(entity.KeyStorePath, in.Name, 2048)
 	if err == nil {
+		// Construct Key Expiration
+		keyExpiresAt := uint64(time.Now().UnixMilli()) + in.ExpiresInUnixTimestamp
+		if in.ExpiresInUnixTimestamp == 0 {
+			keyExpiresAt = 0
+		}
+
 		log.Println("Generated Key:", e1.Name)
 		entity.Store.Add(e1)
 		storage.Internal.KeyMap[e1.Name] = storage.KeyStorage{
@@ -87,15 +94,17 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 			CipherAlgorithm:          "aes", // TODO: Change me when other algos are supported
 			CreatedAt_UnixTimestamp:  uint64(time.Now().UnixMilli()),
 			ModifiedAt_UnixTimestamp: uint64(time.Now().UnixMilli()),
+			ExpiresAt_UnixTimestamp:  uint64(keyExpiresAt),
 		}
 
 		return &pb.Entity{
-			Name:                  e1.Name,
-			Description:           in.Description,
-			Algorithm:             "rsa'", // TODO: Change me when other algos are supported
-			CreatedUnixTimestamp:  uint64(time.Now().UnixMilli()),
-			ModifiedUnixTimestamp: uint64(time.Now().UnixMilli()),
-			PublicKeyName:         x509.MarshalPKCS1PublicKey(e1.PublicKey),
+			Name:                   e1.Name,
+			Description:            in.Description,
+			Algorithm:              "rsa'", // TODO: Change me when other algos are supported
+			CreatedUnixTimestamp:   uint64(time.Now().UnixMilli()),
+			ModifiedUnixTimestamp:  uint64(time.Now().UnixMilli()),
+			PublicKeyName:          x509.MarshalPKCS1PublicKey(e1.PublicKey),
+			ExpiresAtUnixTimestamp: uint64(time.Now().UnixMilli()) + in.ExpiresInUnixTimestamp,
 		}, nil
 	} else {
 		log.Printf("[GenerateKeyPair]: Could not generate KeyPair for '%s' key\n", in.Name)
@@ -117,7 +126,7 @@ func (s openabyss_server) ModifyKeyPair(ctx context.Context, in *pb.EntityModify
 		log.Printf("[ModifyKeyPair]: Modifying '%s' key\n", in.KeyId)
 
 		// Verify no Duplicates
-		if _, ok := storage.Internal.KeyMap[newName]; ok {
+		if _, ok := storage.Internal.KeyMap[newName]; len(newName) > 0 && ok {
 			return nil, errors.New("new name for key already exists")
 		}
 
@@ -133,6 +142,18 @@ func (s openabyss_server) ModifyKeyPair(ctx context.Context, in *pb.EntityModify
 
 		// Modify new Data
 		entry.ModifiedAt_UnixTimestamp = uint64(time.Now().UnixMilli())
+
+		// Modify entity expiration
+		if in.ModifyKeyExpiration {
+			log.Printf("[ModifyKeyPair]: Modifying expiration from '%d' -> '%d' for key '%s'\n", in.ExpiresInUnixTimestamp, entry.ExpiresAt_UnixTimestamp, in.KeyId)
+
+			// Construct Key Expiration
+			keyExpiresAt := uint64(time.Now().UnixMilli()) + in.ExpiresInUnixTimestamp
+			if in.ExpiresInUnixTimestamp == 0 {
+				keyExpiresAt = 0
+			}
+			entry.ExpiresAt_UnixTimestamp = keyExpiresAt
+		}
 
 		// Modify Key name & old map entries
 		if len(newName) > 0 && in.KeyId != newName {
@@ -155,6 +176,11 @@ func (s openabyss_server) ModifyKeyPair(ctx context.Context, in *pb.EntityModify
 		}
 	}
 
+	// No new name change,
+	if len(newName) == 0 {
+		newName = in.KeyId
+	}
+
 	// Generate Public Key Buffer
 	v := entity.Store.Keys[newName]
 	publicKeyBuffer := bytes.NewBuffer(nil)
@@ -165,12 +191,13 @@ func (s openabyss_server) ModifyKeyPair(ctx context.Context, in *pb.EntityModify
 
 	entity := storage.Internal.KeyMap[newName]
 	return &pb.Entity{
-		Name:                  entity.Name,
-		Description:           entity.Description,
-		PublicKeyName:         publicKeyBuffer.Bytes(),
-		Algorithm:             entity.Algorithm,
-		CreatedUnixTimestamp:  entity.CreatedAt_UnixTimestamp,
-		ModifiedUnixTimestamp: entity.ModifiedAt_UnixTimestamp,
+		Name:                   entity.Name,
+		Description:            entity.Description,
+		PublicKeyName:          publicKeyBuffer.Bytes(),
+		Algorithm:              entity.Algorithm,
+		CreatedUnixTimestamp:   entity.CreatedAt_UnixTimestamp,
+		ModifiedUnixTimestamp:  entity.ModifiedAt_UnixTimestamp,
+		ExpiresAtUnixTimestamp: entity.ExpiresAt_UnixTimestamp,
 	}, nil
 }
 
@@ -200,12 +227,13 @@ func (s openabyss_server) RemoveKeyPair(ctx context.Context, in *pb.EntityRemove
 		entity.Store.Length -= 1
 
 		return &pb.Entity{
-			Name:                  entry.Name,
-			Description:           entry.Description,
-			PublicKeyName:         publicKeyBuffer.Bytes(),
-			Algorithm:             entry.Algorithm,
-			CreatedUnixTimestamp:  entry.CreatedAt_UnixTimestamp,
-			ModifiedUnixTimestamp: entry.ModifiedAt_UnixTimestamp, // Last modified
+			Name:                   entry.Name,
+			Description:            entry.Description,
+			PublicKeyName:          publicKeyBuffer.Bytes(),
+			Algorithm:              entry.Algorithm,
+			CreatedUnixTimestamp:   entry.CreatedAt_UnixTimestamp,
+			ModifiedUnixTimestamp:  entry.ModifiedAt_UnixTimestamp, // Last modified
+			ExpiresAtUnixTimestamp: entry.ExpiresAt_UnixTimestamp,
 		}, nil
 	}
 }

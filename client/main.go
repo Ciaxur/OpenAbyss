@@ -35,6 +35,7 @@ type ClientContext struct {
 func printEntity(entity *pb.Entity) {
 	created_at := time.UnixMilli(int64(entity.CreatedUnixTimestamp))
 	modified_at := time.UnixMilli(int64(entity.ModifiedUnixTimestamp))
+	expires_at := time.UnixMilli(int64(entity.ExpiresAtUnixTimestamp + entity.CreatedUnixTimestamp))
 
 	console.Heading.Printf("== [%s] ==\n", entity.Name)
 	console.Log.Println("- Description: ", entity.Description)
@@ -42,6 +43,12 @@ func printEntity(entity *pb.Entity) {
 
 	console.Log.Println("- Created on: ", created_at.Local())
 	console.Log.Println("- Modified on: ", modified_at.Local())
+
+	if entity.ExpiresAtUnixTimestamp != 0 {
+		console.Log.Println("- Expires on: ", expires_at.Local())
+	} else {
+		console.Log.Println("- Expires on: ", "NEVER")
+	}
 
 	console.Log.Println("- Public Key:")
 	console.Log.Println(string(entity.PublicKeyName))
@@ -52,9 +59,10 @@ func handleKeysSubCmd(actions []string, context *ClientContext) {
 	switch actions[0] {
 	case "generate":
 		resp, err := context.pbClient.GenerateKeyPair(context.ctx, &pb.GenerateEntityRequest{
-			Name:        *context.args.KeyPairName,
-			Description: *context.args.KeyPairDescription,
-			Algorithm:   "rsa", // TODO: Change when various algos allowed
+			Name:                   *context.args.KeyPairName,
+			Description:            *context.args.KeyPairDescription,
+			Algorithm:              "rsa", // TODO: Change when various algos allowed
+			ExpiresInUnixTimestamp: uint64(context.args.KeyExpiration.Milliseconds()),
 		})
 		utils.HandleErr(err, "could not generate keypair for given name")
 
@@ -62,10 +70,17 @@ func handleKeysSubCmd(actions []string, context *ClientContext) {
 			console.Heading.Printf("Generated keypair for '%s':\n", color.WhiteString(resp.Name))
 		}
 	case "modify":
+		modifyKeyExpiration := false
+		if context.args.KeyExpirationMod.Milliseconds() != 0 || *context.args.KeyExpirationDisableMod {
+			modifyKeyExpiration = true
+		}
+
 		resp, err := context.pbClient.ModifyKeyPair(context.ctx, &pb.EntityModifyRequest{
-			Name:        *context.args.KeyPairNameMod,
-			Description: *context.args.KeyPairDescriptionMod,
-			KeyId:       *context.args.KeyIdMod,
+			Name:                   *context.args.KeyPairNameMod,
+			Description:            *context.args.KeyPairDescriptionMod,
+			KeyId:                  *context.args.KeyIdMod,
+			ModifyKeyExpiration:    modifyKeyExpiration,
+			ExpiresInUnixTimestamp: uint64(context.args.KeyExpirationMod.Milliseconds()),
 		})
 		utils.HandleErr(err, "could not modify key details for given key-id")
 

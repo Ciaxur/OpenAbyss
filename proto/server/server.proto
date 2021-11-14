@@ -83,12 +83,15 @@ message Entity {
   string  Algorithm = 4;
   uint64  CreatedUnixTimestamp = 5;
   uint64  ModifiedUnixTimestamp = 6;
+  uint64  ExpiresAtUnixTimestamp = 7;
 }
 
 message EntityModifyRequest {
   string  Name = 1;
   string  Description = 2;
   string  KeyId = 3;
+  bool    ModifyKeyExpiration = 4;
+  uint64  ExpiresInUnixTimestamp = 5;
 }
 
 message EntityRemoveRequest {
@@ -96,9 +99,10 @@ message EntityRemoveRequest {
 }
 
 message GenerateEntityRequest {
-  string Name = 1;
+  string  Name = 1;
   string  Description = 2;
   string  Algorithm = 3;
+  uint64  ExpiresInUnixTimestamp = 4;
 }
 
 // KEYS

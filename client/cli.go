@@ -13,11 +13,14 @@ type Arguments struct {
 	KeyPairName        *string
 	KeyPairDescription *string
 	KeyPairAlgo        *string
+	KeyExpiration      *time.Duration
 
 	// KEY MOD
-	KeyIdMod              *string
-	KeyPairNameMod        *string
-	KeyPairDescriptionMod *string
+	KeyIdMod                *string
+	KeyPairNameMod          *string
+	KeyPairDescriptionMod   *string
+	KeyExpirationMod        *time.Duration
+	KeyExpirationDisableMod *bool
 
 	// KEY REMOVE
 	KeyIdRem *string
@@ -86,8 +89,10 @@ func ParseArguments() (string, *Arguments) {
 	args.KeyIdMod = keyModCmd.Flag("key-id", "Key name to modify").Required().String()
 	args.KeyPairNameMod = keyModCmd.Flag("name", "Modify key name").Default("").String()
 	args.KeyPairDescriptionMod = keyModCmd.Flag("description", "Modify key description").Default("").String()
+	args.KeyExpirationMod = keyModCmd.Flag("expire", "Set expiration duration for given key, making the key read-only").Default("0s").Duration()
+	args.KeyExpirationDisableMod = keyModCmd.Flag("no-expire", "Disable key expiration for given key").Default("false").Bool()
 
-	// KEY: Modify
+	// KEY: Remove
 	keyRemCmd := keyCmd.Command("remove", "Key removal sub-menu")
 	args.KeyIdRem = keyRemCmd.Flag("key-id", "Key name to remove").Required().String()
 
@@ -96,6 +101,7 @@ func ParseArguments() (string, *Arguments) {
 	args.KeyPairName = keyGenerateCmd.Flag("name", "Generated key's name").Required().String()
 	args.KeyPairDescription = keyGenerateCmd.Flag("description", "Generated key's description").Default("").String()
 	args.KeyPairAlgo = keyGenerateCmd.Flag("algorithm", "Generated key's algorithm").Default("rsa").String()
+	args.KeyExpiration = keyGenerateCmd.Flag("expire", "Set expiration duration for generated key").Default("0").Duration()
 
 	// KEY: Export
 	keyExportCmd := keyCmd.Command("export", "Export key sub-menu")

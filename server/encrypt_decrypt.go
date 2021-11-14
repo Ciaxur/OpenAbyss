@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"time"
 )
 
 // Encrypts requested file, saving the location to an internal structure
@@ -51,6 +52,11 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 	sk, ok := entity.Store.Keys[in.Options.KeyName]
 	var err error = nil
 	if ok {
+		// Verify key has not expired
+		if uint64(time.Now().UnixMilli()) > storage.Internal.KeyMap[in.Options.KeyName].ExpiresAt_UnixTimestamp {
+			return nil, errors.New("failed to encrypt, key expired")
+		}
+
 		// Stored in internal storage for lookup
 		storedStoragePath := path.Join(storageDir, storagePath)
 
