@@ -111,6 +111,7 @@ message GetKeyNamesResponse {
 message KeyImportRequest {
   bytes   KeyGzip = 1;
   string  KeyId = 2;
+  bool    Force = 3;
 }
 
 message KeyImportResponse {}

@@ -77,7 +77,49 @@ func (s openabyss_server) ExportKey(ctx context.Context, in *pb.KeyExportRequest
 	}
 }
 
+// Import key to server
 func (s openabyss_server) ImportKey(ctx context.Context, in *pb.KeyImportRequest) (*pb.KeyImportResponse, error) {
-	// TODO:
-	return &pb.KeyImportResponse{}, nil
+	log.Printf("[ImportKey]: Import key '%s' requested\n", in.KeyId)
+
+	// Check if key exists
+	if _, ok := storage.Internal.KeyMap[in.KeyId]; ok && !in.Force {
+		log.Printf("[ImportKey]: Import key '%s' duplicate found\n", in.KeyId)
+		return nil, errors.New("duplicate key found, issue force=true to overwrite duplicate")
+	} else {
+		// Unpack & unmarshal blob
+		if reader, err := gzip.NewReader(bytes.NewBuffer(in.KeyGzip)); err != nil {
+			log.Printf("[ImportKey]: Failed to unpack key '%s'\n", in.KeyId)
+			return nil, errors.New("failed unpack archive")
+		} else {
+			var pkg KeyTarPackage
+			buffer, _ := ioutil.ReadAll(reader)
+			json.Unmarshal(buffer, &pkg)
+
+			// Make sure package entries' key id matches what's intended
+			pkg.KeyEntity.Name = in.KeyId
+			pkg.KeyStoreEntry.Name = in.KeyId
+
+			// Add Key to Key Store
+			entity.Store.Keys[in.KeyId] = pkg.KeyEntity
+
+			// Add Key to internal storage
+			storage.Internal.KeyMap[in.KeyId] = pkg.KeyStoreEntry
+
+			// Overwrite key if force requested
+			if ok {
+				log.Printf("[ImportKey]: Overwriting keys for '%s'\n", pkg.KeyEntity.Name)
+			}
+
+			// Save Private & Public key files
+			skPath := path.Join(entity.KeyStorePath, pkg.KeyEntity.Name)
+			ioutil.WriteFile(skPath, pkg.RawPrivateKey, 0644)
+			log.Printf("[ImportKey]: Private key saved to '%s'\n", skPath)
+
+			pkPath := path.Join(entity.KeyStorePath, pkg.KeyEntity.Name) + ".pub"
+			ioutil.WriteFile(pkPath, pkg.RawPublicKey, 0644)
+			log.Printf("[ImportKey]: Public key saved to '%s'\n", pkPath)
+
+			return &pb.KeyImportResponse{}, nil
+		}
+	}
 }

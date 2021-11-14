@@ -84,13 +84,27 @@ func handleKeysSubCmd(actions []string, context *ClientContext) {
 			printEntity(resp)
 		}
 	case "import":
-		console.Log.Println("TODO: IMPLEMENT ME:")
+		// Read that gzip file
+		filePath := *context.args.KeyImportFilePath
+		if buffer, err := ioutil.ReadFile(filePath); err != nil {
+			utils.HandleErr(err, console.Info.Sprintf("failed to read file '%s'\n", filePath))
+		} else {
+			if _, err := context.pbClient.ImportKey(context.ctx, &pb.KeyImportRequest{
+				KeyId:   *context.args.KeyImportKeyId,
+				KeyGzip: buffer,
+				Force:   *context.args.Force,
+			}); err != nil {
+				utils.HandleErr(err, "request error")
+			} else {
+				console.Info.Printf("Successfuly imported '%s'\n", *context.args.KeyImportKeyId)
+			}
+		}
 	case "export":
-		resp, err := context.pbClient.ExportKey(context.ctx, &pb.KeyExportRequest{
+		if resp, err := context.pbClient.ExportKey(context.ctx, &pb.KeyExportRequest{
 			KeyId: *context.args.KeyExportKeyId,
-		})
-		utils.HandleErr(err, "could not export key for given key-id")
-		if err == nil {
+		}); err != nil {
+			utils.HandleErr(err, "could not export key for given key-id")
+		} else {
 			if err := ioutil.WriteFile(*context.args.KeyExportFilePath, resp.KeyGzip, 0644); err != nil {
 				console.Error.Printf("Failed to export key '%s' to destination '%s'\n", color.WhiteString(*context.args.KeyExportKeyId), color.WhiteString(*context.args.KeyExportFilePath))
 			} else {
