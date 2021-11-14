@@ -445,6 +445,19 @@ func handleBackupSubCmd(actions []string, context *ClientContext) {
 	}
 }
 
+// Subcommand-Handler: Version
+func handleVersionSubCmnd(actions []string, context *ClientContext) {
+	// Get current config
+	resp, err := context.pbClient.GetServerVersion(context.ctx, &pb.ServerVersionRequest{})
+	if err != nil {
+		utils.HandleErr(err, "could not get server's version")
+		os.Exit(1)
+	}
+
+	console.Heading.Printf("Server Version: %s\n", color.HiWhiteString(resp.Version))
+	console.Heading.Printf("Client Version: %s\n", color.HiWhiteString(version))
+}
+
 func main() {
 	// Init: Parse Arguments
 	rawSubCmd, args := ParseArguments()
@@ -519,5 +532,7 @@ func main() {
 		handleRemoveSubCmd(actions, &context)
 	case "backup":
 		handleBackupSubCmd(actions, &context)
+	case "version":
+		handleVersionSubCmnd(actions, &context)
 	}
 }

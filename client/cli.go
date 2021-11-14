@@ -60,6 +60,7 @@ type Arguments struct {
 
 	// MISC.
 	Verbose *bool
+	Version *bool
 }
 
 func ParseArguments() (string, *Arguments) {
@@ -153,6 +154,8 @@ func ParseArguments() (string, *Arguments) {
 
 	// FORCE (overwrite)
 	args.Force = kingpin.Flag("force", "Forces supplied action").Bool()
+
+	kingpin.Command("version", "Prints Client/Servier Versions")
 
 	// OTHER
 	args.Verbose = kingpin.Flag("verbose", "Enables verbose printing").Bool()

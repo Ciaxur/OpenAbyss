@@ -40,6 +40,9 @@ service OpenAbyss {
   rpc ExportBackup(BackupEntryRequest) returns (ExportedBackupResponse) {}
   rpc ImportBackup(ImportBackupRequest) returns (EmptyMessage) {}
   rpc RestoreFromBackup(RestoreFromBackupRequest) returns (BackupEntry) {}
+
+  // Misc
+  rpc GetServerVersion(ServerVersionRequest) returns (ServerVersionResponse) {}
 }
 
 // ENCRYPT/DECRYPT
@@ -184,3 +187,9 @@ message RestoreFromBackupRequest {
 
 // MISC
 message EmptyMessage {}
+
+// MISC: Server Version
+message ServerVersionRequest {}
+message ServerVersionResponse {
+  string Version = 1;
+}
