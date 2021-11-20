@@ -100,7 +100,7 @@ func ParseArguments() (string, *Arguments) {
 	keyGenerateCmd := keyCmd.Command("generate", "Generate Keypair given key metadata")
 	args.KeyPairName = keyGenerateCmd.Flag("name", "Generated key's name").Required().String()
 	args.KeyPairDescription = keyGenerateCmd.Flag("description", "Generated key's description").Default("").String()
-	args.KeyPairAlgo = keyGenerateCmd.Flag("algorithm", "Generated key's algorithm").Default("rsa").String()
+	args.KeyPairAlgo = keyGenerateCmd.Flag("algorithm", "Generated key's algorithm").Default("rsa").Enum("rsa", "none", "ed25519")
 	args.KeyExpiration = keyGenerateCmd.Flag("expire", "Set expiration duration for generated key").Default("0").Duration()
 
 	// KEY: Export

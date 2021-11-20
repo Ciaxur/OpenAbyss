@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -67,6 +68,14 @@ func (s openabyss_server) GetKeys(ctx context.Context, in *pb.EmptyMessage) (*pb
 	return respObj, nil
 }
 
+// Generates AEK Key used for Cipher block
+func GenerateAESKey() []byte {
+	// Generate a random 32-bit AES Key to use for Encrypting & Decrypting Data
+	aesKey := make([]byte, 32)
+	rand.Reader.Read(aesKey)
+	return aesKey
+}
+
 // Generate a keypair given a unique key name
 func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEntityRequest) (*pb.Entity, error) {
 	// Early return: Keypair name already exists
@@ -75,41 +84,72 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 		return nil, errors.New("keypair name already exists")
 	}
 
-	log.Printf("[GenerateKeyPair]: Generating KeyPair for '%s' key\n", in.Name)
-	e1, err := entity.GenerateKeys(entity.KeyStorePath, in.Name, 2048)
-	if err == nil {
-		// Construct Key Expiration
-		keyExpiresAt := uint64(time.Now().UnixMilli()) + in.ExpiresInUnixTimestamp
-		if in.ExpiresInUnixTimestamp == 0 {
-			keyExpiresAt = 0
-		}
+	// Generate requested key by algorithm
+	log.Printf("[GenerateKeyPair]: Generating KeyPair[%s] for '%s' key\n", in.Algorithm, in.Name)
 
-		log.Println("Generated Key:", e1.Name)
-		entity.Store.Add(e1)
-		storage.Internal.KeyMap[e1.Name] = storage.KeyStorage{
-			Name:                     e1.Name,
-			Description:              in.Description,
-			Algorithm:                "rsa", // TODO: Change me when other algos are supported
-			CipherEncKey:             string(e1.AesEncryptedKey),
-			CipherAlgorithm:          "aes", // TODO: Change me when other algos are supported
-			CreatedAt_UnixTimestamp:  uint64(time.Now().UnixMilli()),
-			ModifiedAt_UnixTimestamp: uint64(time.Now().UnixMilli()),
-			ExpiresAt_UnixTimestamp:  uint64(keyExpiresAt),
-		}
-
-		return &pb.Entity{
-			Name:                   e1.Name,
-			Description:            in.Description,
-			Algorithm:              "rsa'", // TODO: Change me when other algos are supported
-			CreatedUnixTimestamp:   uint64(time.Now().UnixMilli()),
-			ModifiedUnixTimestamp:  uint64(time.Now().UnixMilli()),
-			PublicKeyName:          x509.MarshalPKCS1PublicKey(e1.PublicKey),
-			ExpiresAtUnixTimestamp: uint64(time.Now().UnixMilli()) + in.ExpiresInUnixTimestamp,
-		}, nil
-	} else {
-		log.Printf("[GenerateKeyPair]: Could not generate KeyPair for '%s' key\n", in.Name)
+	// Shared data between algorithms
+	aesKey := GenerateAESKey()
+	keyExpiresAt := uint64(time.Now().UnixMilli()) + in.ExpiresInUnixTimestamp
+	if in.ExpiresInUnixTimestamp == 0 {
+		keyExpiresAt = 0
 	}
-	return nil, err
+
+	// Construct Key Entries with pre-set shared values
+	keyStorage := storage.KeyStorage{
+		Description:              in.Description,
+		Algorithm:                in.Algorithm,
+		CipherAlgorithm:          "aes", // NOTE: Move to specific entry unless shared
+		CreatedAt_UnixTimestamp:  uint64(time.Now().UnixMilli()),
+		ModifiedAt_UnixTimestamp: uint64(time.Now().UnixMilli()),
+		ExpiresAt_UnixTimestamp:  uint64(keyExpiresAt),
+	}
+	response := &pb.Entity{
+		Description:            in.Description,
+		Algorithm:              in.Algorithm,
+		CreatedUnixTimestamp:   uint64(time.Now().UnixMilli()),
+		ModifiedUnixTimestamp:  uint64(time.Now().UnixMilli()),
+		ExpiresAtUnixTimestamp: uint64(time.Now().UnixMilli()) + in.ExpiresInUnixTimestamp,
+	}
+
+	// Generate key based on given Algorithm
+	switch in.Algorithm {
+	case "rsa":
+		e1, err := entity.GenerateKeys(entity.KeyStorePath, in.Name, 2048, aesKey)
+		if err == nil {
+			log.Println("Generated Key:", e1.Name)
+
+			// Modify entries to represent RSA algorithm option
+			keyStorage.Name = e1.Name
+			keyStorage.CipherEncKey = string(e1.AesEncryptedKey)
+
+			entity.Store.Add(e1)
+			storage.Internal.KeyMap[e1.Name] = keyStorage
+
+			response.Name = e1.Name
+			response.PublicKeyName = x509.MarshalPKCS1PublicKey(e1.PublicKey)
+
+			return response, nil
+		} else {
+			log.Printf("[GenerateKeyPair]: Could not generate KeyPair[%s] for '%s' key\n", in.Algorithm, in.Name)
+			return nil, err
+		}
+
+	case "ed25519": // Signature
+		// Generate a random 32-bit AES Key to use for Encrypting & Decrypting Data
+		aesKey := make([]byte, 32)
+		rand.Reader.Read(aesKey)
+
+		return nil, errors.New("wip; not implemented yet")
+	case "none": // No Encryption | AES-Only
+		// Generate a random 32-bit AES Key to use for Encrypting & Decrypting Data
+		aesKey := make([]byte, 32)
+		rand.Reader.Read(aesKey)
+
+		return nil, errors.New("wip; not implemented yet")
+	default:
+		log.Printf("[GenerateKeyPair]: Algorithm '%s' not supported\n", in.Algorithm)
+		return nil, errors.New("algorithm not supported")
+	}
 }
 
 // Modify existing keypair

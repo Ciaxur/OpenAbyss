@@ -23,7 +23,7 @@ func ValidateKeyPair(sk *rsa.PrivateKey) bool {
 	return true
 }
 
-func GenerateKeys(dir string, keyname string, bits int) (Entity, error) {
+func GenerateKeys(dir string, keyname string, bits int, aesKey []byte) (Entity, error) {
 	// Generate & Create RSA Keys
 	rsaKeyPair, err := rsa.GenerateKey(rand.Reader, bits)
 	utils.HandleErr(err, "error generating RSA Keypair")
@@ -31,10 +31,6 @@ func GenerateKeys(dir string, keyname string, bits int) (Entity, error) {
 	// Export keys to file
 	err = utils.ExportKeys(rsaKeyPair, dir, keyname)
 	utils.HandleErr(err, "could no export keys to file")
-
-	// Generate a random 32-bit AES Key to use for Encrypting & Decrypting Data
-	aesKey := make([]byte, 32)
-	rand.Reader.Read(aesKey)
 
 	// Encrypt the AES Key
 	encryptedAesKey := bytes.NewBufferString("")

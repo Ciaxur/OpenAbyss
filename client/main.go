@@ -61,7 +61,7 @@ func handleKeysSubCmd(actions []string, context *ClientContext) {
 		resp, err := context.pbClient.GenerateKeyPair(context.ctx, &pb.GenerateEntityRequest{
 			Name:                   *context.args.KeyPairName,
 			Description:            *context.args.KeyPairDescription,
-			Algorithm:              "rsa", // TODO: Change when various algos allowed
+			Algorithm:              *context.args.KeyPairAlgo,
 			ExpiresInUnixTimestamp: uint64(context.args.KeyExpiration.Milliseconds()),
 		})
 		utils.HandleErr(err, "could not generate keypair for given name")
