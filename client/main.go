@@ -4,6 +4,10 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/ed25519"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -50,8 +54,17 @@ func printEntity(entity *pb.Entity) {
 		console.Log.Println("- Expires on: ", "NEVER")
 	}
 
-	console.Log.Println("- Public Key:")
-	console.Log.Println(string(entity.PublicKeyName))
+	if len(entity.PublicKeyName) > 0 {
+		console.Log.Println("- Public Key:")
+		console.Log.Println(string(entity.PublicKeyName))
+	}
+
+	// SIGNATURES
+	if entity.SigningPublicKeyPem != "" {
+		console.Log.Println("- Signing Public Key:")
+		pk_pem, _ := base64.StdEncoding.DecodeString(entity.SigningPublicKeyPem)
+		console.Log.Println(string(pk_pem))
+	}
 }
 
 // Subcommand-Handler: Generate
@@ -68,6 +81,20 @@ func handleKeysSubCmd(actions []string, context *ClientContext) {
 
 		if err == nil {
 			console.Heading.Printf("Generated keypair for '%s':\n", color.WhiteString(resp.Name))
+
+			// TODO: Save Signing keys
+			// TODO: make sure encrypt/decrypt takes signature
+			if pkSeed, err := base64.StdEncoding.DecodeString(resp.SigningPrivateKeySeed); err == nil {
+				key := ed25519.NewKeyFromSeed(pkSeed)
+				b, _ := x509.MarshalPKIXPublicKey(key.Public())
+				block := &pem.Block{
+					Type:  "PUBLIC KEY",
+					Bytes: b,
+				}
+				pk_pem := pem.EncodeToMemory(block)
+				console.Log.Println(string(pk_pem))
+			}
+
 		}
 	case "modify":
 		modifyKeyExpiration := false

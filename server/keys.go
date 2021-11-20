@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"log"
@@ -19,14 +21,14 @@ import (
 
 // Obtains available stored Entity Keys
 func (s openabyss_server) GetKeyNames(ctx context.Context, in *pb.EmptyMessage) (*pb.GetKeyNamesResponse, error) {
-	log.Printf("[GetKeyNames]: Total Entities in Store: %d\n", entity.Store.Length)
+	log.Printf("[GetKeyNames]: Total Entities in Store: %d\n", len(storage.Internal.KeyMap))
 
 	keyResp := &pb.GetKeyNamesResponse{
-		Keys: make([]string, entity.Store.Length),
+		Keys: make([]string, len(storage.Internal.KeyMap)),
 	}
 
 	idx := 0
-	for _, v := range entity.Store.Keys {
+	for _, v := range storage.Internal.KeyMap {
 		keyResp.Keys[idx] = v.Name
 		idx += 1
 	}
@@ -36,31 +38,34 @@ func (s openabyss_server) GetKeyNames(ctx context.Context, in *pb.EmptyMessage) 
 
 // Obtains available stored Entities without the Private Keys
 func (s openabyss_server) GetKeys(ctx context.Context, in *pb.EmptyMessage) (*pb.GetKeysResponse, error) {
-	log.Printf("[GetKeys]: Total Entities in Store: %d\n", entity.Store.Length)
+	log.Printf("[GetKeys]: Total Entities in Store: %d\n", len(storage.Internal.KeyMap))
 
 	respObj := &pb.GetKeysResponse{
-		Entities: make([]*pb.Entity, entity.Store.Length),
+		Entities: make([]*pb.Entity, len(storage.Internal.KeyMap)),
 	}
 
 	idx := 0
-	for k, v := range entity.Store.Keys {
+	for key, value := range storage.Internal.KeyMap {
 		// Encode Public Key
 		publicKeyBuffer := bytes.NewBuffer(nil)
-		pem.Encode(publicKeyBuffer, &pem.Block{
-			Type:  "RSA PUBLIC KEY",
-			Bytes: x509.MarshalPKCS1PublicKey(v.PublicKey),
-		})
+		if entity.Store.Has(key) {
+			v := entity.Store.Get(key)
+			pem.Encode(publicKeyBuffer, &pem.Block{
+				Type:  "RSA PUBLIC KEY",
+				Bytes: x509.MarshalPKCS1PublicKey(v.PublicKey),
+			})
+		}
 
 		// Construct response for the entry
-		_key := storage.Internal.KeyMap[k]
 		respObj.Entities[idx] = &pb.Entity{
-			Name:                   _key.Name,
+			Name:                   value.Name,
 			PublicKeyName:          publicKeyBuffer.Bytes(),
-			Description:            _key.Description,
-			Algorithm:              _key.Algorithm,
-			CreatedUnixTimestamp:   _key.CreatedAt_UnixTimestamp,
-			ModifiedUnixTimestamp:  _key.ModifiedAt_UnixTimestamp,
-			ExpiresAtUnixTimestamp: _key.ExpiresAt_UnixTimestamp,
+			Description:            value.Description,
+			Algorithm:              value.Algorithm,
+			CreatedUnixTimestamp:   value.CreatedAt_UnixTimestamp,
+			ModifiedUnixTimestamp:  value.ModifiedAt_UnixTimestamp,
+			ExpiresAtUnixTimestamp: value.ExpiresAt_UnixTimestamp,
+			SigningPublicKeyPem:    value.SigningPublicKey_pem,
 		}
 		idx += 1
 	}
@@ -79,7 +84,7 @@ func GenerateAESKey() []byte {
 // Generate a keypair given a unique key name
 func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEntityRequest) (*pb.Entity, error) {
 	// Early return: Keypair name already exists
-	if entity.Store.Has(in.Name) {
+	if _, ok := storage.Internal.KeyMap[in.Name]; ok {
 		log.Printf("[GenerateKeyPair]: Could not generate. KeyPair '%s' already exists\n", in.Name)
 		return nil, errors.New("keypair name already exists")
 	}
@@ -96,6 +101,7 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 
 	// Construct Key Entries with pre-set shared values
 	keyStorage := storage.KeyStorage{
+		Name:                     in.Name,
 		Description:              in.Description,
 		Algorithm:                in.Algorithm,
 		CipherAlgorithm:          "aes", // NOTE: Move to specific entry unless shared
@@ -104,6 +110,7 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 		ExpiresAt_UnixTimestamp:  uint64(keyExpiresAt),
 	}
 	response := &pb.Entity{
+		Name:                   in.Name,
 		Description:            in.Description,
 		Algorithm:              in.Algorithm,
 		CreatedUnixTimestamp:   uint64(time.Now().UnixMilli()),
@@ -127,19 +134,36 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 
 			response.Name = e1.Name
 			response.PublicKeyName = x509.MarshalPKCS1PublicKey(e1.PublicKey)
-
-			return response, nil
 		} else {
 			log.Printf("[GenerateKeyPair]: Could not generate KeyPair[%s] for '%s' key\n", in.Algorithm, in.Name)
 			return nil, err
 		}
-
 	case "ed25519": // Signature
 		// Generate a random 32-bit AES Key to use for Encrypting & Decrypting Data
 		aesKey := make([]byte, 32)
 		rand.Reader.Read(aesKey)
 
-		return nil, errors.New("wip; not implemented yet")
+		// Generate Public/Private Sig keys | Convert to base64 and store them
+		//  respectively. Private key goes to user, public key goes to both
+		if pk, sk, err := ed25519.GenerateKey(rand.Reader); err != nil {
+			log.Println("[GenerateKeyPair]: Failed to generate signing algorithm key")
+			return nil, errors.New("internal error: failed to genreate signing keys")
+		} else {
+			b, _ := x509.MarshalPKIXPublicKey(pk)
+			block := &pem.Block{
+				Type:  "PUBLIC KEY",
+				Bytes: b,
+			}
+			pk_pem := pem.EncodeToMemory(block)
+
+			keyStorage.SigningPublicKey_pem = base64.StdEncoding.EncodeToString(pk_pem)
+			response.SigningPrivateKeySeed = base64.StdEncoding.EncodeToString(sk.Seed())
+			response.SigningPublicKeyPem = keyStorage.SigningPublicKey_pem
+		}
+
+		// Modify & Add Key to store
+		keyStorage.CipherEncKey = base64.StdEncoding.EncodeToString(aesKey)
+		storage.Internal.KeyMap[in.Name] = keyStorage
 	case "none": // No Encryption | AES-Only
 		// Generate a random 32-bit AES Key to use for Encrypting & Decrypting Data
 		aesKey := make([]byte, 32)
@@ -150,6 +174,8 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 		log.Printf("[GenerateKeyPair]: Algorithm '%s' not supported\n", in.Algorithm)
 		return nil, errors.New("algorithm not supported")
 	}
+
+	return response, nil
 }
 
 // Modify existing keypair
@@ -251,20 +277,25 @@ func (s openabyss_server) RemoveKeyPair(ctx context.Context, in *pb.EntityRemove
 	} else {
 		log.Printf("[RemoveKeyPair]: Removing '%s' key\n", in.KeyId)
 
-		// Generate Public Key Buffer
-		v := entity.Store.Keys[in.KeyId]
-		publicKeyBuffer := bytes.NewBuffer(nil)
-		pem.Encode(publicKeyBuffer, &pem.Block{
-			Type:  "RSA PUBLIC KEY",
-			Bytes: x509.MarshalPKCS1PublicKey(v.PublicKey),
-		})
+		// Generate Public Key Buffer (RSA) and then remove rsa key entry data
+		publicKeyBuffer := bytes.NewBufferString("")
+		if entry.Algorithm == "rsa" {
+			v := entity.Store.Keys[in.KeyId]
+			publicKeyBuffer = bytes.NewBuffer(nil)
+			pem.Encode(publicKeyBuffer, &pem.Block{
+				Type:  "RSA PUBLIC KEY",
+				Bytes: x509.MarshalPKCS1PublicKey(v.PublicKey),
+			})
+
+			// Clean up RSA keys
+			delete(entity.Store.Keys, in.KeyId)
+			entity.Store.Length -= 1
+			os.Remove(path.Join(entity.KeyStorePath, in.KeyId+".pub"))
+			os.Remove(path.Join(entity.KeyStorePath, in.KeyId))
+		}
 
 		// Remove Key from Key Store and Internal Storage
-		delete(entity.Store.Keys, in.KeyId)
 		delete(storage.Internal.KeyMap, in.KeyId)
-		os.Remove(path.Join(entity.KeyStorePath, in.KeyId+".pub"))
-		os.Remove(path.Join(entity.KeyStorePath, in.KeyId))
-		entity.Store.Length -= 1
 
 		return &pb.Entity{
 			Name:                   entry.Name,
@@ -274,6 +305,7 @@ func (s openabyss_server) RemoveKeyPair(ctx context.Context, in *pb.EntityRemove
 			CreatedUnixTimestamp:   entry.CreatedAt_UnixTimestamp,
 			ModifiedUnixTimestamp:  entry.ModifiedAt_UnixTimestamp, // Last modified
 			ExpiresAtUnixTimestamp: entry.ExpiresAt_UnixTimestamp,
+			SigningPublicKeyPem:    entry.SigningPublicKey_pem,
 		}, nil
 	}
 }

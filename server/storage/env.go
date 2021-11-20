@@ -39,6 +39,7 @@ type KeyStorage struct {
 	Algorithm                string `json:"algorithm"`
 	CipherEncKey             string `json:"cipherEncKey"`
 	CipherAlgorithm          string `json:"cipherAlgorithm"`
+	SigningPublicKey_pem     string `json:"sigingPublickKey"`
 	ExpiresAt_UnixTimestamp  uint64 `json:"expires_at_unix_timestamp"` // Expires the abilit to encrypt data, can still decrypt (becomes read-only)
 	CreatedAt_UnixTimestamp  uint64 `json:"created_at_unix_timestamp"`
 	ModifiedAt_UnixTimestamp uint64 `json:"modified_at_unix_timestamp"`

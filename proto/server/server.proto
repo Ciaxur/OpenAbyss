@@ -84,6 +84,8 @@ message Entity {
   uint64  CreatedUnixTimestamp = 5;
   uint64  ModifiedUnixTimestamp = 6;
   uint64  ExpiresAtUnixTimestamp = 7;
+  string  SigningPrivateKeySeed = 8;
+  string  SigningPublicKeyPem = 9;
 }
 
 message EntityModifyRequest {
