@@ -9,7 +9,7 @@ import (
 type Arguments struct {
 	// KEYS/ENTRIES
 	GetKeyNames        *bool
-	GenerateKeys       *bool
+	KeyCertOutput      *string
 	KeyPairName        *string
 	KeyPairDescription *string
 	KeyPairAlgo        *string
@@ -41,6 +41,8 @@ type Arguments struct {
 	StoragePath      *string
 	EncryptKeyId     *string
 	DecryptKeyId     *string
+	EncryptCertPath  *string
+	DecryptCertPath  *string
 
 	// PATH
 	ListPath      *bool
@@ -102,6 +104,7 @@ func ParseArguments() (string, *Arguments) {
 	args.KeyPairDescription = keyGenerateCmd.Flag("description", "Generated key's description").Default("").String()
 	args.KeyPairAlgo = keyGenerateCmd.Flag("algorithm", "Generated key's algorithm").Default("rsa").Enum("rsa", "none", "ed25519")
 	args.KeyExpiration = keyGenerateCmd.Flag("expire", "Set expiration duration for generated key").Default("0").Duration()
+	args.KeyCertOutput = keyGenerateCmd.Flag("cert-out", "Certificate output path for signing keys").Default("./").String()
 
 	// KEY: Export
 	keyExportCmd := keyCmd.Command("export", "Export key sub-menu")
@@ -118,12 +121,14 @@ func ParseArguments() (string, *Arguments) {
 	args.EncryptFile = encryptCmd.Flag("path", "Path to the file to encrypt").Required().String()
 	args.EncryptKeyId = encryptCmd.Flag("key-id", "Key's id/name used to encrypt").Required().String()
 	args.StoragePath = encryptCmd.Flag("storage-path", "Internal path to store encrpyted data").Default("/").String()
+	args.EncryptCertPath = encryptCmd.Flag("cert-path", "Certifact path used to verify user").String()
 
 	// DECRYPT
 	decryptCmd := kingpin.Command("decrypt", "Decrypts file from given path, responding with file data")
 	args.DecryptFile = decryptCmd.Flag("path", "Path to the file to decrypt on server").Required().String()
 	args.DecryptKeyId = decryptCmd.Flag("key-id", "Key's id/name used to encrypt").Required().String()
 	args.FilePacketOutput = decryptCmd.Flag("dest", "Destination for incoming file packet data. Default: Outputs to stdout").Default("").String()
+	args.DecryptCertPath = decryptCmd.Flag("cert-path", "Certifact path used to verify user").String()
 
 	// BACKUP
 	backupCmd := kingpin.Command("backup", "Backup Commands")

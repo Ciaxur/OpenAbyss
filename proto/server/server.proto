@@ -51,6 +51,7 @@ message FilePacket {
   int64       SizeInBytes = 2;
   string      FileName = 3;
   FileOptions options = 4;
+  bytes       FileSignature = 5; // Used for verifying signature if one is required
 }
 
 message FileOptions {
@@ -61,7 +62,8 @@ message FileOptions {
 
 message DecryptRequest {
   string FilePath = 1;
-  bytes PrivateKeyName = 2;
+  bytes  KeyName = 2;
+  bytes  FilePathSignature = 3; // Used for verifying signature if one is required
 }
 
 message EncryptResult {

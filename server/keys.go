@@ -13,6 +13,7 @@ import (
 	"openabyss/entity"
 	pb "openabyss/proto/server"
 	"openabyss/server/storage"
+	"openabyss/utils"
 	"os"
 	"path"
 	"strings"
@@ -149,13 +150,7 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 			log.Println("[GenerateKeyPair]: Failed to generate signing algorithm key")
 			return nil, errors.New("internal error: failed to genreate signing keys")
 		} else {
-			b, _ := x509.MarshalPKIXPublicKey(pk)
-			block := &pem.Block{
-				Type:  "PUBLIC KEY",
-				Bytes: b,
-			}
-			pk_pem := pem.EncodeToMemory(block)
-
+			pk_pem := utils.ED25519_to_pem(pk)
 			keyStorage.SigningPublicKey_pem = base64.StdEncoding.EncodeToString(pk_pem)
 			response.SigningPrivateKeySeed = base64.StdEncoding.EncodeToString(sk.Seed())
 			response.SigningPublicKeyPem = keyStorage.SigningPublicKey_pem
