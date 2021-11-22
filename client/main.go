@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/ed25519"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -50,8 +52,17 @@ func printEntity(entity *pb.Entity) {
 		console.Log.Println("- Expires on: ", "NEVER")
 	}
 
-	console.Log.Println("- Public Key:")
-	console.Log.Println(string(entity.PublicKeyName))
+	if len(entity.PublicKeyName) > 0 {
+		console.Log.Println("- Public Key:")
+		console.Log.Println(string(entity.PublicKeyName))
+	}
+
+	// SIGNATURES
+	if entity.SigningPublicKeyPem != "" {
+		console.Log.Println("- Signing Public Key:")
+		pk_pem, _ := base64.StdEncoding.DecodeString(entity.SigningPublicKeyPem)
+		console.Log.Println(string(pk_pem))
+	}
 }
 
 // Subcommand-Handler: Generate
@@ -61,13 +72,29 @@ func handleKeysSubCmd(actions []string, context *ClientContext) {
 		resp, err := context.pbClient.GenerateKeyPair(context.ctx, &pb.GenerateEntityRequest{
 			Name:                   *context.args.KeyPairName,
 			Description:            *context.args.KeyPairDescription,
-			Algorithm:              "rsa", // TODO: Change when various algos allowed
+			Algorithm:              *context.args.KeyPairAlgo,
 			ExpiresInUnixTimestamp: uint64(context.args.KeyExpiration.Milliseconds()),
 		})
 		utils.HandleErr(err, "could not generate keypair for given name")
 
 		if err == nil {
 			console.Heading.Printf("Generated keypair for '%s':\n", color.WhiteString(resp.Name))
+
+			if pkSeed, err := base64.StdEncoding.DecodeString(resp.SigningPrivateKeySeed); err == nil {
+				sk := ed25519.NewKeyFromSeed(pkSeed)
+
+				// Create Public/Private PEM key formats
+				pk_pem := utils.ED25519_to_pem(sk.Public().(ed25519.PublicKey))
+				sk_pem := utils.ED25519_to_pem_sk(sk)
+
+				console.Log.Println(string(pk_pem))
+
+				// Store Private Key
+				sk_pem_path := path.Join(*context.args.KeyCertOutput, resp.Name) + ".pem"
+				console.Log.Printf("Storing ed25519 private key '%s'\n", sk_pem_path)
+				ioutil.WriteFile(sk_pem_path, sk_pem, 0644)
+			}
+
 		}
 	case "modify":
 		modifyKeyExpiration := false
@@ -193,7 +220,19 @@ func handleEncryptSubCmd(actions []string, context *ClientContext) {
 	} else if len(*context.args.EncryptKeyId) == 0 { // No given key to encrypt with
 		console.Fatalln("no given required keyId to use")
 	} else { // Issue request
-		// Read in the file
+		// Read in Signing Certificate if present and create a private key
+		//  out of parsing the pem file.
+		var sk ed25519.PrivateKey = nil
+		if len(*context.args.EncryptCertPath) > 0 {
+			if certFile, err := ioutil.ReadFile(*context.args.EncryptCertPath); err != nil {
+				console.Error.Println("Failed to read Certificate:", err)
+			} else {
+				// Create ed25519 key from pem file
+				sk = utils.PEM_to_ed25519_sk(certFile)
+			}
+		}
+
+		// Read in the file to Encrypt
 		if fileBytes, err := ioutil.ReadFile(*context.args.EncryptFile); err != nil {
 			console.Fatalln("could not read in file:", err)
 		} else {
@@ -203,10 +242,17 @@ func handleEncryptSubCmd(actions []string, context *ClientContext) {
 			writer.Write(fileBytes)
 			writer.Close()
 
+			// Sign the file bytes if signing key is present
+			var file_sig []byte
+			if sk != nil {
+				file_sig = ed25519.Sign(sk, compBuffer.Bytes())
+			}
+
 			resp, err := context.pbClient.EncryptFile(context.ctx, &pb.FilePacket{
-				FileBytes:   compBuffer.Bytes(),
-				SizeInBytes: int64(len(fileBytes)),
-				FileName:    path.Base(*context.args.EncryptFile),
+				FileBytes:     compBuffer.Bytes(),
+				FileSignature: file_sig,
+				SizeInBytes:   int64(len(fileBytes)),
+				FileName:      path.Base(*context.args.EncryptFile),
 				Options: &pb.FileOptions{
 					StoragePath: *context.args.StoragePath,
 					KeyName:     *context.args.EncryptKeyId,
@@ -232,10 +278,24 @@ func handleEncryptSubCmd(actions []string, context *ClientContext) {
 
 // Subcommand-Handler: Decrypt
 func handleDecryptSubCmd(actions []string, context *ClientContext) {
+	// Read in Signing Certificate if present and create a private key
+	//  out of parsing the pem file.
+	var filePathSig []byte
+	if len(*context.args.DecryptCertPath) > 0 {
+		if certFile, err := ioutil.ReadFile(*context.args.DecryptCertPath); err != nil {
+			console.Error.Println("Failed to read Certificate:", err)
+		} else {
+			// Create ed25519 key from pem file
+			sk := utils.PEM_to_ed25519_sk(certFile)
+			filePathSig = ed25519.Sign(sk, []byte(*context.args.DecryptFile))
+		}
+	}
+
 	// Issue request
 	resp, err := context.pbClient.DecryptFile(context.ctx, &pb.DecryptRequest{
-		FilePath:       *context.args.DecryptFile,
-		PrivateKeyName: []byte(*context.args.DecryptKeyId),
+		FilePath:          *context.args.DecryptFile,
+		FilePathSignature: filePathSig,
+		KeyName:           []byte(*context.args.DecryptKeyId),
 	})
 
 	// Handle response

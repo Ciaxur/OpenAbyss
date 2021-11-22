@@ -8,26 +8,12 @@ import (
 	"openabyss/utils"
 )
 
-// Maps Encrypted AES Key to Entity
-func mapAesKeyToEntity() {
-	log.Println("[aes.mapping] Mapping Aes Ciphers to each Entity")
-	for key, val := range storage.Internal.KeyMap {
-		if ent, ok := entity.Store.Keys[key]; ok {
-			ent.AesEncryptedKey = []byte(val.CipherEncKey)
-
-			// Re-apply entity to Object
-			entity.Store.Keys[key] = ent
-		}
-	}
-}
-
 func Init() {
 	// Load Entity Store
 	entity.Init()
 
 	// Load Storage
 	storage.Init()
-	mapAesKeyToEntity()
 
 	// Load Configuration
 	configuration.Init()

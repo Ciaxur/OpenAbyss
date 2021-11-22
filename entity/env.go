@@ -15,8 +15,7 @@ var (
 )
 
 type Entity struct {
-	PublicKey       *rsa.PublicKey
-	PrivateKey      *rsa.PrivateKey
-	AesEncryptedKey []byte
-	Name            string
+	PublicKey  *rsa.PublicKey
+	PrivateKey *rsa.PrivateKey
+	Name       string
 }

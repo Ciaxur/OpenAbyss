@@ -3,13 +3,17 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"log"
 	"openabyss/entity"
 	pb "openabyss/proto/server"
 	"openabyss/server/storage"
+	"openabyss/utils"
 	"os"
 	"path"
 	"strings"
@@ -18,14 +22,14 @@ import (
 
 // Obtains available stored Entity Keys
 func (s openabyss_server) GetKeyNames(ctx context.Context, in *pb.EmptyMessage) (*pb.GetKeyNamesResponse, error) {
-	log.Printf("[GetKeyNames]: Total Entities in Store: %d\n", entity.Store.Length)
+	log.Printf("[GetKeyNames]: Total Entities in Store: %d\n", len(storage.Internal.KeyMap))
 
 	keyResp := &pb.GetKeyNamesResponse{
-		Keys: make([]string, entity.Store.Length),
+		Keys: make([]string, len(storage.Internal.KeyMap)),
 	}
 
 	idx := 0
-	for _, v := range entity.Store.Keys {
+	for _, v := range storage.Internal.KeyMap {
 		keyResp.Keys[idx] = v.Name
 		idx += 1
 	}
@@ -35,31 +39,34 @@ func (s openabyss_server) GetKeyNames(ctx context.Context, in *pb.EmptyMessage) 
 
 // Obtains available stored Entities without the Private Keys
 func (s openabyss_server) GetKeys(ctx context.Context, in *pb.EmptyMessage) (*pb.GetKeysResponse, error) {
-	log.Printf("[GetKeys]: Total Entities in Store: %d\n", entity.Store.Length)
+	log.Printf("[GetKeys]: Total Entities in Store: %d\n", len(storage.Internal.KeyMap))
 
 	respObj := &pb.GetKeysResponse{
-		Entities: make([]*pb.Entity, entity.Store.Length),
+		Entities: make([]*pb.Entity, len(storage.Internal.KeyMap)),
 	}
 
 	idx := 0
-	for k, v := range entity.Store.Keys {
+	for key, value := range storage.Internal.KeyMap {
 		// Encode Public Key
 		publicKeyBuffer := bytes.NewBuffer(nil)
-		pem.Encode(publicKeyBuffer, &pem.Block{
-			Type:  "RSA PUBLIC KEY",
-			Bytes: x509.MarshalPKCS1PublicKey(v.PublicKey),
-		})
+		if entity.Store.Has(key) {
+			v := entity.Store.Get(key)
+			pem.Encode(publicKeyBuffer, &pem.Block{
+				Type:  "RSA PUBLIC KEY",
+				Bytes: x509.MarshalPKCS1PublicKey(v.PublicKey),
+			})
+		}
 
 		// Construct response for the entry
-		_key := storage.Internal.KeyMap[k]
 		respObj.Entities[idx] = &pb.Entity{
-			Name:                   _key.Name,
+			Name:                   value.Name,
 			PublicKeyName:          publicKeyBuffer.Bytes(),
-			Description:            _key.Description,
-			Algorithm:              _key.Algorithm,
-			CreatedUnixTimestamp:   _key.CreatedAt_UnixTimestamp,
-			ModifiedUnixTimestamp:  _key.ModifiedAt_UnixTimestamp,
-			ExpiresAtUnixTimestamp: _key.ExpiresAt_UnixTimestamp,
+			Description:            value.Description,
+			Algorithm:              value.Algorithm,
+			CreatedUnixTimestamp:   value.CreatedAt_UnixTimestamp,
+			ModifiedUnixTimestamp:  value.ModifiedAt_UnixTimestamp,
+			ExpiresAtUnixTimestamp: value.ExpiresAt_UnixTimestamp,
+			SigningPublicKeyPem:    value.SigningPublicKey_pem,
 		}
 		idx += 1
 	}
@@ -67,49 +74,103 @@ func (s openabyss_server) GetKeys(ctx context.Context, in *pb.EmptyMessage) (*pb
 	return respObj, nil
 }
 
+// Generates AEK Key used for Cipher block
+func GenerateAESKey() []byte {
+	// Generate a random 32-bit AES Key to use for Encrypting & Decrypting Data
+	aesKey := make([]byte, 32)
+	rand.Reader.Read(aesKey)
+	return aesKey
+}
+
 // Generate a keypair given a unique key name
 func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEntityRequest) (*pb.Entity, error) {
 	// Early return: Keypair name already exists
-	if entity.Store.Has(in.Name) {
+	if _, ok := storage.Internal.KeyMap[in.Name]; ok {
 		log.Printf("[GenerateKeyPair]: Could not generate. KeyPair '%s' already exists\n", in.Name)
 		return nil, errors.New("keypair name already exists")
 	}
 
-	log.Printf("[GenerateKeyPair]: Generating KeyPair for '%s' key\n", in.Name)
-	e1, err := entity.GenerateKeys(entity.KeyStorePath, in.Name, 2048)
-	if err == nil {
-		// Construct Key Expiration
-		keyExpiresAt := uint64(time.Now().UnixMilli()) + in.ExpiresInUnixTimestamp
-		if in.ExpiresInUnixTimestamp == 0 {
-			keyExpiresAt = 0
-		}
+	// Generate requested key by algorithm
+	log.Printf("[GenerateKeyPair]: Generating KeyPair[%s] for '%s' key\n", in.Algorithm, in.Name)
 
-		log.Println("Generated Key:", e1.Name)
-		entity.Store.Add(e1)
-		storage.Internal.KeyMap[e1.Name] = storage.KeyStorage{
-			Name:                     e1.Name,
-			Description:              in.Description,
-			Algorithm:                "rsa", // TODO: Change me when other algos are supported
-			CipherEncKey:             string(e1.AesEncryptedKey),
-			CipherAlgorithm:          "aes", // TODO: Change me when other algos are supported
-			CreatedAt_UnixTimestamp:  uint64(time.Now().UnixMilli()),
-			ModifiedAt_UnixTimestamp: uint64(time.Now().UnixMilli()),
-			ExpiresAt_UnixTimestamp:  uint64(keyExpiresAt),
-		}
-
-		return &pb.Entity{
-			Name:                   e1.Name,
-			Description:            in.Description,
-			Algorithm:              "rsa'", // TODO: Change me when other algos are supported
-			CreatedUnixTimestamp:   uint64(time.Now().UnixMilli()),
-			ModifiedUnixTimestamp:  uint64(time.Now().UnixMilli()),
-			PublicKeyName:          x509.MarshalPKCS1PublicKey(e1.PublicKey),
-			ExpiresAtUnixTimestamp: uint64(time.Now().UnixMilli()) + in.ExpiresInUnixTimestamp,
-		}, nil
-	} else {
-		log.Printf("[GenerateKeyPair]: Could not generate KeyPair for '%s' key\n", in.Name)
+	// Shared data between algorithms
+	aesKey := GenerateAESKey()
+	keyExpiresAt := uint64(time.Now().UnixMilli()) + in.ExpiresInUnixTimestamp
+	if in.ExpiresInUnixTimestamp == 0 {
+		keyExpiresAt = 0
 	}
-	return nil, err
+
+	// Construct Key Entries with pre-set shared values
+	keyStorage := storage.KeyStorage{
+		Name:                     in.Name,
+		Description:              in.Description,
+		Algorithm:                in.Algorithm,
+		CipherAlgorithm:          "aes", // NOTE: Move to specific entry unless shared
+		CipherEncKey:             base64.StdEncoding.EncodeToString(aesKey),
+		CreatedAt_UnixTimestamp:  uint64(time.Now().UnixMilli()),
+		ModifiedAt_UnixTimestamp: uint64(time.Now().UnixMilli()),
+		ExpiresAt_UnixTimestamp:  uint64(keyExpiresAt),
+	}
+	response := &pb.Entity{
+		Name:                   in.Name,
+		Description:            in.Description,
+		Algorithm:              in.Algorithm,
+		CreatedUnixTimestamp:   uint64(time.Now().UnixMilli()),
+		ModifiedUnixTimestamp:  uint64(time.Now().UnixMilli()),
+		ExpiresAtUnixTimestamp: uint64(time.Now().UnixMilli()) + in.ExpiresInUnixTimestamp,
+	}
+
+	// Generate key based on given Algorithm
+	switch in.Algorithm {
+	case "rsa":
+		e1, err := entity.GenerateKeys(entity.KeyStorePath, in.Name, 2048, aesKey)
+		if err == nil {
+			log.Println("Generated Key:", e1.Name)
+
+			// Modify entries to represent RSA algorithm option
+			keyStorage.Name = e1.Name
+
+			// Encrypt the AES Key
+			encryptedAesKey := bytes.NewBufferString("")
+			if err = entity.Encrypt(aesKey, encryptedAesKey, e1.PrivateKey); err != nil {
+				utils.HandleErr(err, "[GenerateKeyPair]: Failed to encrypt aes key")
+				return nil, errors.New("internal error")
+			}
+
+			// Override Cipher Key with base64 encrypted aes key
+			keyStorage.CipherEncKey = base64.StdEncoding.EncodeToString(encryptedAesKey.Bytes())
+
+			entity.Store.Add(e1)
+			storage.Internal.KeyMap[e1.Name] = keyStorage
+
+			response.Name = e1.Name
+			response.PublicKeyName = x509.MarshalPKCS1PublicKey(e1.PublicKey)
+		} else {
+			log.Printf("[GenerateKeyPair]: Could not generate KeyPair[%s] for '%s' key\n", in.Algorithm, in.Name)
+			return nil, err
+		}
+	case "ed25519": // Signature
+		// Generate Public/Private Sig keys | Convert to base64 and store them
+		//  respectively. Private key goes to user, public key goes to both
+		if pk, sk, err := ed25519.GenerateKey(rand.Reader); err != nil {
+			log.Println("[GenerateKeyPair]: Failed to generate signing algorithm key")
+			return nil, errors.New("internal error: failed to genreate signing keys")
+		} else {
+			pk_pem := utils.ED25519_to_pem(pk)
+			keyStorage.SigningPublicKey_pem = base64.StdEncoding.EncodeToString(pk_pem)
+			response.SigningPrivateKeySeed = base64.StdEncoding.EncodeToString(sk.Seed())
+			response.SigningPublicKeyPem = keyStorage.SigningPublicKey_pem
+		}
+
+		// Modify & Add Key to store
+		storage.Internal.KeyMap[in.Name] = keyStorage
+	case "none": // No Encryption | AES-Only
+	default:
+		log.Printf("[GenerateKeyPair]: Algorithm '%s' not supported\n", in.Algorithm)
+		return nil, errors.New("algorithm not supported")
+	}
+
+	return response, nil
 }
 
 // Modify existing keypair
@@ -211,20 +272,25 @@ func (s openabyss_server) RemoveKeyPair(ctx context.Context, in *pb.EntityRemove
 	} else {
 		log.Printf("[RemoveKeyPair]: Removing '%s' key\n", in.KeyId)
 
-		// Generate Public Key Buffer
-		v := entity.Store.Keys[in.KeyId]
-		publicKeyBuffer := bytes.NewBuffer(nil)
-		pem.Encode(publicKeyBuffer, &pem.Block{
-			Type:  "RSA PUBLIC KEY",
-			Bytes: x509.MarshalPKCS1PublicKey(v.PublicKey),
-		})
+		// Generate Public Key Buffer (RSA) and then remove rsa key entry data
+		publicKeyBuffer := bytes.NewBufferString("")
+		if entry.Algorithm == "rsa" {
+			v := entity.Store.Keys[in.KeyId]
+			publicKeyBuffer = bytes.NewBuffer(nil)
+			pem.Encode(publicKeyBuffer, &pem.Block{
+				Type:  "RSA PUBLIC KEY",
+				Bytes: x509.MarshalPKCS1PublicKey(v.PublicKey),
+			})
+
+			// Clean up RSA keys
+			delete(entity.Store.Keys, in.KeyId)
+			entity.Store.Length -= 1
+			os.Remove(path.Join(entity.KeyStorePath, in.KeyId+".pub"))
+			os.Remove(path.Join(entity.KeyStorePath, in.KeyId))
+		}
 
 		// Remove Key from Key Store and Internal Storage
-		delete(entity.Store.Keys, in.KeyId)
 		delete(storage.Internal.KeyMap, in.KeyId)
-		os.Remove(path.Join(entity.KeyStorePath, in.KeyId+".pub"))
-		os.Remove(path.Join(entity.KeyStorePath, in.KeyId))
-		entity.Store.Length -= 1
 
 		return &pb.Entity{
 			Name:                   entry.Name,
@@ -234,6 +300,7 @@ func (s openabyss_server) RemoveKeyPair(ctx context.Context, in *pb.EntityRemove
 			CreatedUnixTimestamp:   entry.CreatedAt_UnixTimestamp,
 			ModifiedUnixTimestamp:  entry.ModifiedAt_UnixTimestamp, // Last modified
 			ExpiresAtUnixTimestamp: entry.ExpiresAt_UnixTimestamp,
+			SigningPublicKeyPem:    entry.SigningPublicKey_pem,
 		}, nil
 	}
 }
