@@ -75,15 +75,8 @@ func decryptAesCipherBlock(pk *rsa.PrivateKey, encCipherKey []byte) (cipher.Bloc
 	}
 }
 
-// Attempts to encrypt given data writer using cipher to given destination returning the state of
-//  the encryption.
-func CipherEncrypt(data []byte, destWriter io.Writer, entity *Entity, aesEncryptedKey string) error {
-	// Decrypt Cipher
-	c, err := decryptAesCipherBlock(entity.PrivateKey, []byte(aesEncryptedKey))
-	if err != nil {
-		return err
-	}
-
+// Encrypts given data into writer using given cipher block
+func CipherEncrypt(data []byte, destWriter io.Writer, c cipher.Block) error {
 	// Encrypt the data
 	// Create iv & prepend to ciphertext
 	cipherText := make([]byte, c.BlockSize()+len(data))
@@ -101,23 +94,15 @@ func CipherEncrypt(data []byte, destWriter io.Writer, entity *Entity, aesEncrypt
 	}
 
 	// Write Encrypted data -> Base64 -> IO Writer
-	_, err = destWriter.Write([]byte(base64.StdEncoding.EncodeToString(cipherText)))
+	_, err := destWriter.Write([]byte(base64.StdEncoding.EncodeToString(cipherText)))
 	if !utils.HandleErr(err, "could not write encrypted data to writer") {
 		return err
 	}
-
 	return nil
 }
 
-// Attempts to decrypt given encrypted data using cipher to destination returning the state of
-//  the decryption.
-func CipherDecrypt(data []byte, destWriter io.Writer, entity *Entity, aesEncryptedKey string) error {
-	// Decrypt Cipher
-	c, err := decryptAesCipherBlock(entity.PrivateKey, []byte(aesEncryptedKey))
-	if err != nil {
-		return err
-	}
-
+// Decrypts given data into writer using given cipher block
+func CipherDecrypt(data []byte, destWriter io.Writer, c cipher.Block) error {
 	// Convert base64 -> ciphertext
 	cipherText, err := base64.StdEncoding.DecodeString(string(data))
 	if err != nil {
@@ -148,4 +133,30 @@ func CipherDecrypt(data []byte, destWriter io.Writer, entity *Entity, aesEncrypt
 		return err
 	}
 	return nil
+}
+
+// Attempts to encrypt given data writer using cipher to given destination returning the state of
+//  the encryption.
+func RSACipherEncrypt(data []byte, destWriter io.Writer, entity *Entity, aesEncryptedKey string) error {
+	// Decrypt Cipher
+	c, err := decryptAesCipherBlock(entity.PrivateKey, []byte(aesEncryptedKey))
+	if err != nil {
+		return err
+	}
+
+	// Encrpyt data using decrypted Cipher into the Writer
+	return CipherEncrypt(data, destWriter, c)
+}
+
+// Attempts to decrypt given encrypted data using cipher to destination returning the state of
+//  the decryption.
+func RSACipherDecrypt(data []byte, destWriter io.Writer, entity *Entity, aesEncryptedKey string) error {
+	// Decrypt Cipher
+	c, err := decryptAesCipherBlock(entity.PrivateKey, []byte(aesEncryptedKey))
+	if err != nil {
+		return err
+	}
+
+	// Decrypt data using decrypted Cipher into the Writer
+	return CipherDecrypt(data, destWriter, c)
 }

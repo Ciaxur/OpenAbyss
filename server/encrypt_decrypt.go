@@ -95,7 +95,7 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 	} else if key_store_found {
 		// Encrypt the file by decrypting the cipher using rsa and
 		//  then encrypting the file
-		if err := entity.CipherEncrypt(in.FileBytes, destWriter, &sk, internalKey.CipherEncKey); err != nil {
+		if err := entity.RSACipherEncrypt(in.FileBytes, destWriter, &sk, internalKey.CipherEncKey); err != nil {
 			utils.HandleErr(err, "[EncryptFile]: failed to encrypt")
 			destWriter.Close()
 		}
@@ -171,7 +171,7 @@ func (s openabyss_server) DecryptFile(ctx context.Context, in *pb.DecryptRequest
 
 		// Attempt to Decrypt data
 		if key_store_found {
-			if err := entity.CipherDecrypt(fsBytes, destWriter, &sk, internalKey.CipherEncKey); err != nil {
+			if err := entity.RSACipherDecrypt(fsBytes, destWriter, &sk, internalKey.CipherEncKey); err != nil {
 				log.Printf("[DecryptFile]: Failed to decrypt file '%s'\n", encFilePath)
 				return nil, err
 			}
