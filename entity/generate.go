@@ -1,11 +1,9 @@
 package entity
 
 import (
-	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/pem"
 	"io/ioutil"
 	"openabyss/utils"
@@ -32,19 +30,10 @@ func GenerateKeys(dir string, keyname string, bits int, aesKey []byte) (Entity, 
 	err = utils.ExportKeys(rsaKeyPair, dir, keyname)
 	utils.HandleErr(err, "could no export keys to file")
 
-	// Encrypt the AES Key
-	encryptedAesKey := bytes.NewBufferString("")
-	err = Encrypt(aesKey, encryptedAesKey, rsaKeyPair)
-	utils.HandleErr(err, "failed to encrypt aes key")
-
-	// Encode Encrypted Key to Base64
-	b64EncAesKey := base64.StdEncoding.EncodeToString(encryptedAesKey.Bytes())
-
 	return Entity{
-		PrivateKey:      rsaKeyPair,
-		PublicKey:       &rsaKeyPair.PublicKey,
-		AesEncryptedKey: []byte(b64EncAesKey),
-		Name:            keyname,
+		PrivateKey: rsaKeyPair,
+		PublicKey:  &rsaKeyPair.PublicKey,
+		Name:       keyname,
 	}, err
 }
 

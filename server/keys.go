@@ -106,6 +106,7 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 		Description:              in.Description,
 		Algorithm:                in.Algorithm,
 		CipherAlgorithm:          "aes", // NOTE: Move to specific entry unless shared
+		CipherEncKey:             base64.StdEncoding.EncodeToString(aesKey),
 		CreatedAt_UnixTimestamp:  uint64(time.Now().UnixMilli()),
 		ModifiedAt_UnixTimestamp: uint64(time.Now().UnixMilli()),
 		ExpiresAt_UnixTimestamp:  uint64(keyExpiresAt),
@@ -128,7 +129,16 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 
 			// Modify entries to represent RSA algorithm option
 			keyStorage.Name = e1.Name
-			keyStorage.CipherEncKey = string(e1.AesEncryptedKey)
+
+			// Encrypt the AES Key
+			encryptedAesKey := bytes.NewBufferString("")
+			if err = entity.Encrypt(aesKey, encryptedAesKey, e1.PrivateKey); err != nil {
+				utils.HandleErr(err, "[GenerateKeyPair]: Failed to encrypt aes key")
+				return nil, errors.New("internal error")
+			}
+
+			// Override Cipher Key with base64 encrypted aes key
+			keyStorage.CipherEncKey = base64.StdEncoding.EncodeToString(encryptedAesKey.Bytes())
 
 			entity.Store.Add(e1)
 			storage.Internal.KeyMap[e1.Name] = keyStorage
@@ -140,10 +150,6 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 			return nil, err
 		}
 	case "ed25519": // Signature
-		// Generate a random 32-bit AES Key to use for Encrypting & Decrypting Data
-		aesKey := make([]byte, 32)
-		rand.Reader.Read(aesKey)
-
 		// Generate Public/Private Sig keys | Convert to base64 and store them
 		//  respectively. Private key goes to user, public key goes to both
 		if pk, sk, err := ed25519.GenerateKey(rand.Reader); err != nil {
@@ -157,14 +163,8 @@ func (s openabyss_server) GenerateKeyPair(ctx context.Context, in *pb.GenerateEn
 		}
 
 		// Modify & Add Key to store
-		keyStorage.CipherEncKey = base64.StdEncoding.EncodeToString(aesKey)
 		storage.Internal.KeyMap[in.Name] = keyStorage
 	case "none": // No Encryption | AES-Only
-		// Generate a random 32-bit AES Key to use for Encrypting & Decrypting Data
-		aesKey := make([]byte, 32)
-		rand.Reader.Read(aesKey)
-
-		return nil, errors.New("wip; not implemented yet")
 	default:
 		log.Printf("[GenerateKeyPair]: Algorithm '%s' not supported\n", in.Algorithm)
 		return nil, errors.New("algorithm not supported")

@@ -76,10 +76,10 @@ func decryptAesCipherBlock(pk *rsa.PrivateKey, encCipherKey []byte) (cipher.Bloc
 }
 
 // Attempts to encrypt given data writer using cipher to given destination returning the state of
-//  the encryption. Obtaining Cipher from encrypted key in Enity object.
-func CipherEncrypt(data []byte, destWriter io.Writer, entity *Entity) error {
+//  the encryption.
+func CipherEncrypt(data []byte, destWriter io.Writer, entity *Entity, aesEncryptedKey string) error {
 	// Decrypt Cipher
-	c, err := decryptAesCipherBlock(entity.PrivateKey, entity.AesEncryptedKey)
+	c, err := decryptAesCipherBlock(entity.PrivateKey, []byte(aesEncryptedKey))
 	if err != nil {
 		return err
 	}
@@ -110,10 +110,10 @@ func CipherEncrypt(data []byte, destWriter io.Writer, entity *Entity) error {
 }
 
 // Attempts to decrypt given encrypted data using cipher to destination returning the state of
-//  the decryption. Obtaining Cipher from encrypted key in Enity object.
-func CipherDecrypt(data []byte, destWriter io.Writer, entity *Entity) error {
+//  the decryption.
+func CipherDecrypt(data []byte, destWriter io.Writer, entity *Entity, aesEncryptedKey string) error {
 	// Decrypt Cipher
-	c, err := decryptAesCipherBlock(entity.PrivateKey, entity.AesEncryptedKey)
+	c, err := decryptAesCipherBlock(entity.PrivateKey, []byte(aesEncryptedKey))
 	if err != nil {
 		return err
 	}
