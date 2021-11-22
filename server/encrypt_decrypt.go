@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
@@ -89,23 +91,44 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 	actualStoredPath := path.Join(storageDir, fileId)
 	log.Printf("[EncryptFile]: storing '%s' -> '%s'\n", path.Join(storagePath, in.FileName), actualStoredPath)
 
-	if destWriter, err := os.Create(actualStoredPath); err != nil {
+	// Write data to writer based on requested algorithm
+	destWriter, err := os.Create(actualStoredPath)
+	if err != nil {
 		utils.HandleErr(err, "[EncryptFile]: failed to create file path")
 		return nil, errors.New("internal storage failure")
-	} else if key_store_found {
+	}
+	switch internalKey.Algorithm {
+	case "rsa":
+		// Verify no monkey business and key was stored when the algorithm stored
+		//  is in fact RSA
+		if !key_store_found {
+			log.Println("[EncryptFile]: Failed infrastructure. Internal Key algorithm states 'rsa', but no key store to match")
+			return nil, errors.New("internal error")
+		}
+
 		// Encrypt the file by decrypting the cipher using rsa and
 		//  then encrypting the file
 		if err := entity.RSACipherEncrypt(in.FileBytes, destWriter, &sk, internalKey.CipherEncKey); err != nil {
 			utils.HandleErr(err, "[EncryptFile]: failed to encrypt")
 			destWriter.Close()
+			return nil, errors.New("internal error, failed to encrypt")
 		}
-	} else {
-		// Do not enrypt the file internally, but signature is requried
-		//  which is checked above.
-		// TODO: In the future, add AES encryption to be used if signature
-		/// is verified. Then add another condition here to do so.
-		destWriter.Write(in.FileBytes)
+	case "ed25519", "none":
+		// Encrypt internal file storage, even though the key itself is not
+		//  encrypted. That is due to trusting the autority OF storing said data.
+		var c cipher.Block
+		if cipherKey, err := base64.StdEncoding.DecodeString(internalKey.CipherEncKey); err != nil {
+			utils.HandleErr(err, "[EncryptFile]: failed to decode cipher")
+			return nil, errors.New("internal error")
+		} else {
+			if c, err = aes.NewCipher(cipherKey); err != nil {
+				utils.HandleErr(err, "[EncryptFile]: failed to create new cipher")
+				return nil, errors.New("internal error")
+			}
+		}
+		entity.CipherEncrypt(in.FileBytes, destWriter, c)
 	}
+	destWriter.Close()
 
 	// Store data in internal storage
 	if _, err := storage.Internal.Store(fileId, path.Join(storagePath, in.FileName), uint64(in.SizeInBytes), storage.Type_File, in.Options.Overwrite); err != nil {
@@ -115,7 +138,6 @@ func (s openabyss_server) EncryptFile(ctx context.Context, in *pb.FilePacket) (*
 		storage.Internal.WriteToFile()
 		log.Printf("[EncryptFile]: Successfully stored encrypted data, %d bytes, internally\n", in.SizeInBytes)
 	}
-
 	return &pb.EncryptResult{
 		FileStoragePath: storagePath,
 		FileId:          fileId,
@@ -169,18 +191,37 @@ func (s openabyss_server) DecryptFile(ctx context.Context, in *pb.DecryptRequest
 	} else {
 		destWriter := bytes.NewBuffer(nil)
 
-		// Attempt to Decrypt data
-		if key_store_found {
+		// Decrypt based on set Algorithm
+		switch internalKey.Algorithm {
+		case "rsa":
+			// Verify no monkey business and key was stored when the algorithm stored
+			//  is in fact RSA
+			if !key_store_found {
+				log.Println("[DecryptFile]: Failed infrastructure. Internal Key algorithm states 'rsa', but no key store to match")
+				return nil, errors.New("internal error")
+			}
+
+			// Encrypt the file by decrypting the cipher using rsa and
+			//  then encrypting the file
 			if err := entity.RSACipherDecrypt(fsBytes, destWriter, &sk, internalKey.CipherEncKey); err != nil {
 				log.Printf("[DecryptFile]: Failed to decrypt file '%s'\n", encFilePath)
-				return nil, err
+				return nil, errors.New("internal failure, failed to encrypt")
 			}
 			log.Printf("[DecryptFile]: Successfuly decrypted, %d bytes, file '%s'\n", fsFile.SizeInBytes, encFilePath)
-		} else {
-			// Data was not encrypted but signature was verified, return the
-			//  data from storage.
-			// TODO: When sig + aes is added, make sure to decrypt using cipher here.
-			destWriter.Write(fsBytes)
+		case "ed25519", "none":
+			// Cipher was not encrypted but signature was verified, decrypt and
+			//  return the data from storage.
+			var c cipher.Block
+			if cipherKey, err := base64.StdEncoding.DecodeString(internalKey.CipherEncKey); err != nil {
+				utils.HandleErr(err, "[DecryptFile]: failed to decode cipher")
+				return nil, errors.New("internal error")
+			} else {
+				if c, err = aes.NewCipher(cipherKey); err != nil {
+					utils.HandleErr(err, "[DecryptFile]: failed to create new cipher")
+					return nil, errors.New("internal error")
+				}
+			}
+			entity.CipherDecrypt(fsBytes, destWriter, c)
 		}
 
 		// Successful Response
