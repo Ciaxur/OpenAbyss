@@ -19,7 +19,8 @@ func DisableVerbose() {
 
 func Init() {
 	// Assemble internal storage paths
-	wd, err := os.Getwd()
+	bin_path, err := os.Executable()
+	wd := path.Dir(bin_path)
 	if err != nil {
 		log.Fatalln("could not get cwd", err)
 	}

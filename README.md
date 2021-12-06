@@ -63,6 +63,21 @@ _scripts/generate_certs.sh
 
 ❗ For **remote servers**, modify [server-ext.cnf](_scripts/server-ext.cnf) respectively.
 
+## Installing OpenAbyss 📦
+Binary home is installed under `/opt/OpenAbyss`. 
+Binary is symlinked in `/usr/bin/open-abyss`
+
+Run the following,
+```sh
+# Generate the certificates used between the client & server. Only have to
+#  generate this once.
+_scripts/generate_certs.sh
+
+# Run the install script with sudo permissions.
+_scripts/build.sh --install
+```
+
+
 ## Build and Run 🚀
 Building both `server` and `client` binaries by running the following,
 ```sh

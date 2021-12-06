@@ -552,9 +552,17 @@ func main() {
 	var conn *grpc.ClientConn
 	var conn_err error = nil
 
+	// Get the current binary's parent directory path which will be used for
+	// determining where the certificates are. (Client-Only)
+	bin_path, err := os.Executable()
+	wd := path.Dir(bin_path)
+	if err != nil {
+		log.Fatalln("could not get cwd", err)
+	}
+
 	// Init TLS Credentials
 	insecure := configuration.LoadedConfig.Insecure
-	tlsCertPath := configuration.LoadedConfig.TLSCertPath
+	tlsCertPath := path.Join(wd, configuration.LoadedConfig.TLSCertPath)
 
 	if !insecure {
 		creds, err := credentials.NewClientTLSFromFile(tlsCertPath, "")
