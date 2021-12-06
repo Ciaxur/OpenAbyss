@@ -161,7 +161,7 @@ func handleListKeysSubCmd(actions []string, context *ClientContext) {
 	// List key names only
 	if *context.args.GetKeyNames {
 		resp, err := context.pbClient.GetKeyNames(context.ctx, &pb.EmptyMessage{})
-		utils.HandleErr(err, "could no get names")
+		utils.HandleErr(err, "could not get names")
 		if err == nil {
 			console.Info.Println("Total Keys: ", len(resp.Keys))
 			for idx, entryKey := range resp.Keys {
@@ -174,7 +174,7 @@ func handleListKeysSubCmd(actions []string, context *ClientContext) {
 
 	// List Keys with metadata
 	resp, err := context.pbClient.GetKeys(context.ctx, &pb.EmptyMessage{})
-	utils.HandleErr(err, "could no get keys")
+	utils.HandleErr(err, "could not get keys")
 	if err == nil {
 		// Log there are no keys if none are returned
 		if len(resp.Entities) == 0 {
