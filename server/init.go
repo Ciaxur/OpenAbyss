@@ -24,12 +24,13 @@ func Init() {
 	// Setup internal configuraiton
 	port = configuration.LoadedConfig.GrpcPort
 	host = configuration.LoadedConfig.GrpcHost
+	tlsPoolPath = configuration.LoadedConfig.TLSCertPoolPath
 	tlsCert = configuration.LoadedConfig.TLSCertPath
 	tlsKey = configuration.LoadedConfig.TLSKeyPath
 	insecure = configuration.LoadedConfig.Insecure
 
 	// Validate TLS Files exist, otherwise override to Insecure
-	if !insecure && !(utils.FileExists(tlsCert) || utils.FileExists(tlsKey)) {
+	if !insecure && tlsPoolPath == "" && !(utils.FileExists(tlsCert) || utils.FileExists(tlsKey)) {
 		log.Println("[server.init] Insecure override, no files found")
 		insecure = true
 	}

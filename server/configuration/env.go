@@ -13,6 +13,7 @@ type Configuration struct {
 	Insecure            bool                   `json:"insecure"`
 	GrpcPort            uint16                 `json:"grpcPort"`
 	GrpcHost            string                 `json:"grpcHost"`
+	TLSCertPoolPath     string                 `json:"tlsCertPoolPath"`
 	TLSCertPath         string                 `json:"tlsCertPath"`
 	TLSKeyPath          string                 `json:"tlsKeyPath"`
 	Backup              BackupSubConfiguration `json:"backup"`
@@ -25,8 +26,14 @@ var (
 		Insecure:            false,
 		GrpcHost:            "0.0.0.0",
 		GrpcPort:            50051,
-		TLSCertPath:         "cert/server-cert.pem",
-		TLSKeyPath:          "cert/server-key.pem",
+
+		// Path to all TLS Certifcates to add to pool.
+		// If this is not empty, this takes precedence over TLS keypair.
+		TLSCertPoolPath: "",
+
+		// Single TLS Keypair to use
+		TLSCertPath: "cert/server-cert.pem",
+		TLSKeyPath:  "cert/server-key.pem",
 		Backup: BackupSubConfiguration{
 			Enable:          true,
 			RetentionPeriod: 7 * 24 * 60 * 60 * 1000, // 7 Days by default
